@@ -35,14 +35,15 @@ class CustomDrawerHeader extends StatelessWidget {
               GestureDetector(
                 onTap: () {
                   if (userManager.isLoggedIn) {
-                    // TODO: implementar logout
                     userManager.signOut();
                   } else {
                     Navigator.of(context).pushNamed('/login');
                   }
                 },
                 child: Text(
-                  userManager.isLoggedIn ? 'Sair' : 'Entrar ou cadastre-se >',
+                  userManager.isLoggedIn
+                      ? 'Sair'
+                      : 'Entrar ou cadastre-se >',
                   style: TextStyle(
                     color: Theme.of(context).primaryColor,
                     fontSize: 16,

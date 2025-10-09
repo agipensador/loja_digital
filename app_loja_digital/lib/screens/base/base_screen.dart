@@ -1,4 +1,5 @@
 import 'package:app_loja_digital/screens/base/login/login_screen.dart';
+import 'package:app_loja_digital/models/products/components/products_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:app_loja_digital/common/custom_drawer/custom_drawer.dart';
@@ -34,11 +35,7 @@ class BaseScreen extends StatelessWidget {
 
         // Página 2 - Produtos
         Scaffold(
-          drawer: CustomDrawer(),
-          appBar: AppBar(
-            title: const Text('Produtos'),
-          ),
-          body: const Center(child: Text('Tela Produtos')),
+          body: ProductsScreen(),
         ),
 
         // Página 3 - Pedidos

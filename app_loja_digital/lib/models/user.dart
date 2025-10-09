@@ -25,6 +25,9 @@ class User {
   DocumentReference<Map<String, dynamic>> get firestoreRef =>
       FirebaseFirestore.instance.collection('users').doc(id);
 
+      CollectionReference get cartReference => 
+      firestoreRef.collection('cart');
+
   Future<void> saveData() async {
     await firestoreRef.set(toMap());
   }

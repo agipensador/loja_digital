@@ -1,7 +1,10 @@
+import 'package:app_loja_digital/models/cart_manager.dart';
+import 'package:app_loja_digital/models/product_manager.dart';
 import 'package:app_loja_digital/models/user_manager.dart';
-import 'package:app_loja_digital/screens/base/base_screens.dart';
+import 'package:app_loja_digital/screens/base/base_screen.dart';
 import 'package:app_loja_digital/screens/base/login/login_screen.dart';
 import 'package:app_loja_digital/screens/base/login/signup/signup_screen.dart';
+import 'package:app_loja_digital/screens/cart/cart_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:app_loja_digital/models/page_manager.dart';
@@ -14,16 +17,33 @@ void main() async {
   runApp(
     MultiProvider(
       providers: [
+        // PageController
         ListenableProvider<PageController>(
           create: (_) => PageController(),
         ),
-        ChangeNotifierProxyProvider<PageController, PageManager>(
+
+        // PageManager depende do PageController (pega o PageController acima)
+        ChangeNotifierProvider<PageManager>(
           create: (context) => PageManager(context.read<PageController>()),
-          update: (context, pageController, previous) =>
-              previous ?? PageManager(pageController),
         ),
+
+        // UserManager
         ChangeNotifierProvider<UserManager>(
           create: (_) => UserManager(),
+          lazy: false,
+        ),
+
+        // ProductManager
+        ChangeNotifierProvider<ProductManager>(
+          create: (_) => ProductManager(),
+          lazy: false,
+        ),
+
+        // CartManager depende do UserManager -> ProxyProvider
+        ChangeNotifierProxyProvider<UserManager, CartManager>(
+          create: (_) => CartManager(),
+          update: (_, userManager, cartManager) =>
+              cartManager!..updateUser(userManager),
           lazy: false,
         ),
       ],
@@ -53,9 +73,11 @@ class MyApp extends StatelessWidget {
             return MaterialPageRoute(builder: (_) => LoginScreen());
           case '/signup':
             return MaterialPageRoute(builder: (_) => SignupScreen());
+          case '/cart':
+            return MaterialPageRoute(builder: (_) => const CartScreen());
           case '/base':
           default:
-            return MaterialPageRoute(builder: (_) => BaseScreen());
+            return MaterialPageRoute(builder: (_) => const BaseScreen());
         }
       },
     );
