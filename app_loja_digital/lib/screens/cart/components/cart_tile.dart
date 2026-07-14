@@ -27,10 +27,15 @@ class CartTile extends StatelessWidget {
                       color: Colors.grey[200],
                       child: const Center(child: CircularProgressIndicator()),
                     )
-                  : Image.network(
-                      cartProduct.product!.images.first,
-                      fit: BoxFit.cover,
-                    ),
+                  : (cartProduct.product!.images.isNotEmpty
+                      ? Image.network(
+                          cartProduct.product!.images.first,
+                          fit: BoxFit.cover,
+                        )
+                      : Container(
+                          color: Colors.grey[200],
+                          child: const Icon(Icons.image_not_supported),
+                        )),
             ),
             Expanded(
               child: Padding(

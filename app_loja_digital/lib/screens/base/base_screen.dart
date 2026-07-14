@@ -1,5 +1,7 @@
-import 'package:app_loja_digital/screens/base/login/login_screen.dart';
-import 'package:app_loja_digital/models/products/components/products_screen.dart';
+import 'package:app_loja_digital/screens/products/products_screen.dart';
+import 'package:app_loja_digital/screens/admin_orders/admin_orders_screen.dart';
+import 'package:app_loja_digital/screens/home/home_screen.dart';
+import 'package:app_loja_digital/screens/orders/orders_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:app_loja_digital/common/custom_drawer/custom_drawer.dart';
@@ -15,46 +17,24 @@ class BaseScreen extends StatelessWidget {
       controller: pageController,
       physics: const NeverScrollableScrollPhysics(),
       children: <Widget>[
-        // Página 0 - Home (exemplo)
-        Scaffold(
-          drawer: CustomDrawer(),
-          appBar: AppBar(
-            title: const Text('Início'),
-          ),
-          body: Center(child: Text('Tela Inicial')),
-        ),
+        // 0 - Início
+        const HomeScreen(),
 
-        // Página 1 - Login (se quiser mostrar a tela de login como página)
-        Scaffold(
-          drawer: CustomDrawer(),
-          appBar: AppBar(
-            title: const Text('Login'),
-          ),
-          body: LoginScreen(),
-        ),
+        // 1 - Produtos
+        const ProductsScreen(),
 
-        // Página 2 - Produtos
-        Scaffold(
-          body: ProductsScreen(),
-        ),
+        // 2 - Meus Pedidos
+        const OrdersScreen(),
 
-        // Página 3 - Pedidos
+        // 3 - Lojas
         Scaffold(
-          drawer: CustomDrawer(),
-          appBar: AppBar(
-            title: const Text('Pedidos'),
-          ),
-          body: const Center(child: Text('Meus pedidos')),
-        ),
-
-        // Página 4 - Lojas
-        Scaffold(
-          drawer: CustomDrawer(),
-          appBar: AppBar(
-            title: const Text('Lojas'),
-          ),
+          drawer: const CustomDrawer(),
+          appBar: AppBar(title: const Text('Lojas')),
           body: const Center(child: Text('Tela das Lojas')),
         ),
+
+        // 4 - Pedidos (admin)
+        const AdminOrdersScreen(),
       ],
     );
   }

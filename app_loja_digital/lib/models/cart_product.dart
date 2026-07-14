@@ -7,7 +7,7 @@ class CartProduct {
   CartProduct.fromProduct(Product product) {
     id = null;
     this.product = product;
-    productId = product.id;
+    productId = product.id!;
     quantity = 1;
     size = product.selectedSize?.name ?? '';
   }
@@ -46,11 +46,32 @@ class CartProduct {
     return itemSize?.price ?? 0;
   }
 
+  /// Há estoque suficiente para a quantidade pedida deste item.
+  bool get hasStock {
+    final ItemSize? s = itemSize;
+    if (s == null) return false;
+    return s.stock >= quantity;
+  }
+
   Map<String, dynamic> toCartItemMap() {
     return {
       'pid': productId,
       'quantity': quantity,
       'size': size,
+    };
+  }
+
+  /// Snapshot rico usado ao criar um pedido (independe do produto persistir).
+  Map<String, dynamic> toOrderItemMap() {
+    return {
+      'pid': productId,
+      'quantity': quantity,
+      'size': size,
+      'name': product?.name ?? '',
+      'price': unitPrice,
+      'image': (product?.images.isNotEmpty ?? false)
+          ? product!.images.first
+          : '',
     };
   }
 

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:app_loja_digital/common/custom_drawer/drawer_tile.dart';
 import 'package:app_loja_digital/common/custom_drawer/custom_drawer_header.dart';
+import 'package:app_loja_digital/models/user_manager.dart';
 
 class CustomDrawer extends StatelessWidget {
   const CustomDrawer({super.key});
@@ -24,15 +26,32 @@ class CustomDrawer extends StatelessWidget {
             ),
           ),
           // Lista de opções
-          ListView(
-            children: const <Widget>[
-              CustomDrawerHeader(),
-              Divider(),
-              DrawerTile(iconData: Icons.home, title: 'Início', page: 0),
-              DrawerTile(iconData: Icons.list, title: 'Produtos', page: 1),
-              DrawerTile(iconData: Icons.shopping_cart, title: 'Meus Pedidos', page: 2),
-              DrawerTile(iconData: Icons.store, title: 'Lojas', page: 3),
-            ],
+          Consumer<UserManager>(
+            builder: (_, userManager, __) {
+              return ListView(
+                children: <Widget>[
+                  const CustomDrawerHeader(),
+                  const Divider(),
+                  const DrawerTile(
+                      iconData: Icons.home, title: 'Início', page: 0),
+                  const DrawerTile(
+                      iconData: Icons.list, title: 'Produtos', page: 1),
+                  const DrawerTile(
+                      iconData: Icons.playlist_add_check,
+                      title: 'Meus Pedidos',
+                      page: 2),
+                  const DrawerTile(
+                      iconData: Icons.location_on, title: 'Lojas', page: 3),
+                  if (userManager.adminEnabled) ...const <Widget>[
+                    Divider(),
+                    DrawerTile(
+                        iconData: Icons.settings,
+                        title: 'Pedidos',
+                        page: 4),
+                  ],
+                ],
+              );
+            },
           ),
         ],
       ),

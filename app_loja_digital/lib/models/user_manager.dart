@@ -6,6 +6,7 @@ import 'package:firebase_auth/firebase_auth.dart' as fb;
 class UserManager extends ChangeNotifier {
   UserManager() {
     _loadCurrentUser();
+    _loadAdmins();
   }
 
   final fb.FirebaseAuth auth = fb.FirebaseAuth.instance;
@@ -20,6 +21,10 @@ class UserManager extends ChangeNotifier {
 
   fb.User? _firebaseUser;
   fb.User? get firebaseUser => _firebaseUser;
+
+  final List<String> admins = [];
+
+  bool get adminEnabled => user != null && admins.contains(user!.id);
 
   set loading(bool value) {
     _loading = value;
@@ -39,6 +44,7 @@ class UserManager extends ChangeNotifier {
       user.id = result.user!.uid;
       this.user = user;
       _firebaseUser = result.user;
+      user.admin = admins.contains(user.id);
 
       await user.saveData();
 
@@ -92,7 +98,24 @@ class UserManager extends ChangeNotifier {
           await firestore.collection('users').doc(currentUser.uid).get();
       user = app.User.fromDocument(docUser);
       _firebaseUser = currentUser;
+
+      // marca admin caso o UID esteja na lista já carregada
+      user!.admin = admins.contains(user!.id);
+
       notifyListeners();
     }
+  }
+
+  Future<void> _loadAdmins() async {
+    admins.clear();
+    final QuerySnapshot<Map<String, dynamic>> snapAdmins =
+        await firestore.collection('admins').get();
+    for (final doc in snapAdmins.docs) {
+      admins.add(doc.id);
+    }
+    if (user != null) {
+      user!.admin = admins.contains(user!.id);
+    }
+    notifyListeners();
   }
 }

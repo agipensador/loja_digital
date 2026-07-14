@@ -23,7 +23,13 @@ class ProductListTile extends StatelessWidget {
             children: <Widget>[
               AspectRatio(
                 aspectRatio: 1,
-                child: Image.network(product.images.first),
+                child: product.images.isNotEmpty
+                    ? Image.network(product.images.first, fit: BoxFit.cover)
+                    : Container(
+                        color: Colors.grey[200],
+                        child: const Icon(Icons.image_not_supported,
+                            color: Colors.grey),
+                      ),
               ),
               const SizedBox(width: 16),
               Expanded(
@@ -49,7 +55,7 @@ class ProductListTile extends StatelessWidget {
                       ),
                     ),
                     Text(
-                      'R\$ 19.99',
+                      'R\$ ${product.basePrice.toStringAsFixed(2)}',
                       style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w800,

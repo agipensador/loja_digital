@@ -1,10 +1,17 @@
 import 'package:app_loja_digital/models/cart_manager.dart';
+import 'package:app_loja_digital/models/home_manager.dart';
+import 'package:app_loja_digital/models/orders_manager.dart';
 import 'package:app_loja_digital/models/product_manager.dart';
 import 'package:app_loja_digital/models/user_manager.dart';
 import 'package:app_loja_digital/screens/base/base_screen.dart';
-import 'package:app_loja_digital/screens/base/login/login_screen.dart';
-import 'package:app_loja_digital/screens/base/login/signup/signup_screen.dart';
+import 'package:app_loja_digital/screens/login/login_screen.dart';
+import 'package:app_loja_digital/screens/signup/signup_screen.dart';
 import 'package:app_loja_digital/screens/cart/cart_screen.dart';
+import 'package:app_loja_digital/screens/address/address_screen.dart';
+import 'package:app_loja_digital/screens/checkout/checkout_screen.dart';
+import 'package:app_loja_digital/models/product.dart';
+import 'package:app_loja_digital/screens/product/product_screen.dart';
+import 'package:app_loja_digital/screens/edit_product/edit_product_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:app_loja_digital/models/page_manager.dart';
@@ -39,11 +46,25 @@ void main() async {
           lazy: false,
         ),
 
+        // HomeManager (seções editáveis da tela inicial)
+        ChangeNotifierProvider<HomeManager>(
+          create: (_) => HomeManager(),
+          lazy: false,
+        ),
+
         // CartManager depende do UserManager -> ProxyProvider
         ChangeNotifierProxyProvider<UserManager, CartManager>(
           create: (_) => CartManager(),
           update: (_, userManager, cartManager) =>
               cartManager!..updateUser(userManager),
+          lazy: false,
+        ),
+
+        // OrdersManager depende do UserManager
+        ChangeNotifierProxyProvider<UserManager, OrdersManager>(
+          create: (_) => OrdersManager(),
+          update: (_, userManager, ordersManager) =>
+              ordersManager!..updateUser(userManager),
           lazy: false,
         ),
       ],
@@ -75,6 +96,19 @@ class MyApp extends StatelessWidget {
             return MaterialPageRoute(builder: (_) => SignupScreen());
           case '/cart':
             return MaterialPageRoute(builder: (_) => const CartScreen());
+          case '/address':
+            return MaterialPageRoute(builder: (_) => const AddressScreen());
+          case '/checkout':
+            return MaterialPageRoute(builder: (_) => const CheckoutScreen());
+          case '/product':
+            return MaterialPageRoute(
+              builder: (_) => ProductScreen(settings.arguments as Product),
+            );
+          case '/edit_product':
+            return MaterialPageRoute(
+              builder: (_) =>
+                  EditProductScreen(settings.arguments as Product?),
+            );
           case '/base':
           default:
             return MaterialPageRoute(builder: (_) => const BaseScreen());

@@ -22,6 +22,8 @@ class User {
   String password;
   String confirmPassword;
 
+  bool admin = false;
+
   DocumentReference<Map<String, dynamic>> get firestoreRef =>
       FirebaseFirestore.instance.collection('users').doc(id);
 

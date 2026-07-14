@@ -1,5 +1,5 @@
 import 'package:app_loja_digital/models/cart_manager.dart';
-import 'package:app_loja_digital/models/products/components/size_widget.dart';
+import 'package:app_loja_digital/screens/product/components/size_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:app_loja_digital/models/product.dart';
@@ -21,6 +21,24 @@ class ProductScreen extends StatelessWidget {
         appBar: AppBar(
           title: Text(product.name),
           centerTitle: true,
+          actions: <Widget>[
+            Consumer<UserManager>(
+              builder: (_, userManager, __) {
+                if (userManager.adminEnabled && !product.deleted) {
+                  return IconButton(
+                    icon: const Icon(Icons.edit),
+                    onPressed: () {
+                      Navigator.of(context).pushNamed(
+                        '/edit_product',
+                        arguments: product,
+                      );
+                    },
+                  );
+                }
+                return const SizedBox.shrink();
+              },
+            ),
+          ],
         ),
         backgroundColor: Colors.white,
         body: ListView(
@@ -31,13 +49,22 @@ class ProductScreen extends StatelessWidget {
                 enableInfiniteScroll: false,
                 viewportFraction: 1,
               ),
-              items: product.images.map((url) {
-                return Image.network(
-                  url,
-                  fit: BoxFit.cover,
-                  width: double.infinity,
-                );
-              }).toList(),
+              items: product.images.isEmpty
+                  ? [
+                      Container(
+                        color: Colors.grey[200],
+                        alignment: Alignment.center,
+                        child: const Icon(Icons.image_not_supported,
+                            size: 64, color: Colors.grey),
+                      ),
+                    ]
+                  : product.images.map((url) {
+                      return Image.network(
+                        url,
+                        fit: BoxFit.cover,
+                        width: double.infinity,
+                      );
+                    }).toList(),
             ),
             Padding(
               padding: const EdgeInsets.all(16),
@@ -62,7 +89,7 @@ class ProductScreen extends StatelessWidget {
                     ),
                   ),
                   Text(
-                    'R\$19,99',
+                    'R\$ ${product.basePrice.toStringAsFixed(2)}',
                     style: TextStyle(
                       fontSize: 22.0,
                       fontWeight: FontWeight.bold,
