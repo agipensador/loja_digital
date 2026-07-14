@@ -1,13 +1,13 @@
 {
   "project_info": {
-    "project_number": "148452990992",
-    "project_id": "loja-digital-7d928",
-    "storage_bucket": "loja-digital-7d928.firebasestorage.app"
+    "project_number": "954686759385",
+    "project_id": "loja-digital-ju0714",
+    "storage_bucket": "loja-digital-ju0714.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:148452990992:android:84e97cf7d96baf73b96a95",
+        "mobilesdk_app_id": "1:954686759385:android:18a00934fbd92d081cb9c8",
         "android_client_info": {
           "package_name": "br.com.inforic.app_loja_digital"
         }
@@ -15,7 +15,7 @@
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyDueT8A443UoMIBIAKIWI-O4Nu0lHG2JSs"
+          "current_key": "AIzaSyA-A8csjD68IJC3MAirIu3KZp4A5hmGWKU"
         }
       ],
       "services": {
