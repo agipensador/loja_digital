@@ -87,7 +87,9 @@ class MyApp extends StatelessWidget {
         appBarTheme: const AppBarTheme(elevation: 0),
         visualDensity: VisualDensity.adaptivePlatformDensity,
       ),
-      initialRoute: '/base',
+      // '/base' como initialRoute fazia o Flutter empilhar '/' E '/base'
+      // (duas BaseScreen com o mesmo PageController -> troca de telas quebrava).
+      initialRoute: '/',
       onGenerateRoute: (settings) {
         switch (settings.name) {
           case '/login':
