@@ -106,6 +106,16 @@ class UserManager extends ChangeNotifier {
     }
   }
 
+  /// Promove o usuário atual a admin (uso de demonstração).
+  Future<void> makeCurrentUserAdmin() async {
+    if (user == null) return;
+    await firestore
+        .collection('admins')
+        .doc(user!.id)
+        .set({'email': user!.email});
+    await _loadAdmins();
+  }
+
   Future<void> _loadAdmins() async {
     admins.clear();
     final QuerySnapshot<Map<String, dynamic>> snapAdmins =

@@ -3,6 +3,23 @@ import 'package:app_loja_digital/models/user_manager.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter/material.dart';
 
+/// Conta de demonstração exibida na tela de login.
+class _TestAccount {
+  const _TestAccount({
+    required this.label,
+    required this.name,
+    required this.email,
+    required this.password,
+    this.admin = false,
+  });
+
+  final String label;
+  final String name;
+  final String email;
+  final String password;
+  final bool admin;
+}
+
 class LoginScreen extends StatelessWidget {
   LoginScreen({super.key});
 
@@ -10,8 +27,25 @@ class LoginScreen extends StatelessWidget {
   final TextEditingController passController = TextEditingController();
   final GlobalKey<FormState> formKey = GlobalKey<FormState>();
 
+  static const List<_TestAccount> _testAccounts = [
+    _TestAccount(
+      label: 'Admin (gerencia a loja)',
+      name: 'Admin',
+      email: 'admin@lojadigital.com',
+      password: '123456',
+      admin: true,
+    ),
+    _TestAccount(
+      label: 'Cliente (compra)',
+      name: 'Cliente Teste',
+      email: 'cliente@lojadigital.com',
+      password: '123456',
+    ),
+  ];
+
   bool emailValid(String email) {
-    final RegExp regex = RegExp(r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$");
+    final RegExp regex =
+        RegExp(r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$");
     return regex.hasMatch(email);
   }
 
@@ -26,13 +60,8 @@ class LoginScreen extends StatelessWidget {
             onPressed: () {
               Navigator.of(context).pushReplacementNamed('/signup');
             },
-            style: TextButton.styleFrom(
-              foregroundColor: Colors.white,
-            ),
-            child: const Text(
-              'CRIAR CONTA',
-              style: TextStyle(fontSize: 14),
-            ),
+            style: TextButton.styleFrom(foregroundColor: Colors.white),
+            child: const Text('CRIAR CONTA', style: TextStyle(fontSize: 14)),
           )
         ],
       ),
@@ -75,20 +104,6 @@ class LoginScreen extends StatelessWidget {
                       },
                     ),
                     const SizedBox(height: 16),
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: TextButton(
-                        onPressed: userManager.loading
-                            ? null
-                            : () {
-                                if (formKey.currentState!.validate()) {
-                                  _signIn(context);
-                                }
-                              },
-                        child: const Text('Esqueci minha senha'),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
                     SizedBox(
                       height: 44,
                       child: ElevatedButton(
@@ -110,14 +125,42 @@ class LoginScreen extends StatelessWidget {
                               },
                         child: userManager.loading
                             ? const CircularProgressIndicator(
-                                valueColor: AlwaysStoppedAnimation(Colors.white),
+                                valueColor:
+                                    AlwaysStoppedAnimation(Colors.white),
                               )
-                            : const Text(
-                                'Entrar',
-                                style: TextStyle(fontSize: 18),
-                              ),
+                            : const Text('Entrar',
+                                style: TextStyle(fontSize: 18)),
                       ),
                     ),
+                    const SizedBox(height: 24),
+                    const Divider(),
+                    const Text(
+                      'Contas de teste (toque para entrar)',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black54,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    for (final account in _testAccounts)
+                      Card(
+                        color: Theme.of(context).primaryColor.withAlpha(20),
+                        child: ListTile(
+                          leading: Icon(
+                            account.admin
+                                ? Icons.admin_panel_settings
+                                : Icons.person,
+                            color: Theme.of(context).primaryColor,
+                          ),
+                          title: Text(account.label),
+                          subtitle: Text(
+                            '${account.email}\nsenha: ${account.password}',
+                          ),
+                          isThreeLine: true,
+                          enabled: !userManager.loading,
+                          onTap: () => _useTestAccount(context, account),
+                        ),
+                      ),
                   ],
                 );
               },
@@ -146,8 +189,62 @@ class LoginScreen extends StatelessWidget {
             );
           },
           onSuccess: (_) {
-            Navigator.of(context).pop(); // fecha tela de login
+            Navigator.of(context).pop();
           },
         );
+  }
+
+  /// Entra com a conta de teste; se ela ainda não existir, cria na hora.
+  /// A conta admin é promovida a administrador automaticamente.
+  Future<void> _useTestAccount(
+      BuildContext context, _TestAccount account) async {
+    emailController.text = account.email;
+    passController.text = account.password;
+
+    final userManager = context.read<UserManager>();
+
+    await userManager.signIn(
+      app.User(
+        name: account.name,
+        email: account.email,
+        password: account.password,
+        confirmPassword: account.password,
+        id: '',
+      ),
+      onFail: (_) {},
+      onSuccess: (_) {},
+    );
+
+    if (!userManager.isLoggedIn) {
+      // conta não existe ainda -> cria
+      await userManager.signUp(
+        user: app.User(
+          name: account.name,
+          email: account.email,
+          password: account.password,
+          confirmPassword: account.password,
+          id: '',
+        ),
+        onFail: (e) {
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Falha: $e'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+        },
+        onSuccess: () {},
+      );
+    }
+
+    if (account.admin && userManager.isLoggedIn) {
+      await userManager.makeCurrentUserAdmin();
+    }
+
+    if (userManager.isLoggedIn && context.mounted) {
+      Navigator.of(context).pop();
+    }
   }
 }
