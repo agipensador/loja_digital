@@ -1,5 +1,4 @@
-import 'dart:io';
-
+import 'package:app_loja_digital/common/picked_image.dart';
 import 'package:app_loja_digital/models/product.dart';
 import 'package:app_loja_digital/models/section.dart';
 import 'package:app_loja_digital/models/section_item.dart';
@@ -21,7 +20,7 @@ class EditSectionImages extends StatelessWidget {
       try {
         final XFile? file = await picker.pickImage(source: source);
         if (file != null) {
-          section.addItem(SectionItem(image: File(file.path)));
+          section.addItem(SectionItem(image: file));
         }
       } catch (e) {
         debugPrint('Erro ao selecionar imagem: $e');
@@ -119,10 +118,7 @@ class _EditImageTile extends StatelessWidget {
       child: Stack(
         fit: StackFit.expand,
         children: <Widget>[
-          if (item.image is String)
-            Image.network(item.image as String, fit: BoxFit.cover)
-          else
-            Image.file(item.image as File, fit: BoxFit.cover),
+          PickedImage(item.image, fit: BoxFit.cover),
           Align(
             alignment: Alignment.topRight,
             child: GestureDetector(

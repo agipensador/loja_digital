@@ -1,4 +1,4 @@
-import 'dart:io';
+import 'package:image_picker/image_picker.dart';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
@@ -125,11 +125,13 @@ class Product extends ChangeNotifier {
     for (final newImage in newImages) {
       if (newImage is String) {
         updatedImages.add(newImage);
-      } else if (newImage is File) {
+      } else if (newImage is XFile) {
         final Reference ref = storageRef.child(
           DateTime.now().millisecondsSinceEpoch.toString(),
         );
-        final UploadTask task = ref.putFile(newImage);
+        final bytes = await newImage.readAsBytes();
+        final UploadTask task =
+            ref.putData(bytes, SettableMetadata(contentType: 'image/jpeg'));
         final TaskSnapshot snapshot = await task;
         final String url = await snapshot.ref.getDownloadURL();
         updatedImages.add(url);

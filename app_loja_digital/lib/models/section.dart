@@ -1,4 +1,4 @@
-import 'dart:io';
+import 'package:image_picker/image_picker.dart';
 
 import 'package:app_loja_digital/models/section_item.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -89,11 +89,13 @@ class Section extends ChangeNotifier {
 
     // Upload de imagens novas (File) e coleta das URLs mantidas.
     for (final item in items) {
-      if (item.image is File) {
+      if (item.image is XFile) {
         final Reference ref = storageRef.child(
           DateTime.now().millisecondsSinceEpoch.toString(),
         );
-        final UploadTask task = ref.putFile(item.image as File);
+        final bytes = await (item.image as XFile).readAsBytes();
+        final UploadTask task =
+            ref.putData(bytes, SettableMetadata(contentType: 'image/jpeg'));
         final TaskSnapshot snapshot = await task;
         item.image = await snapshot.ref.getDownloadURL();
       }

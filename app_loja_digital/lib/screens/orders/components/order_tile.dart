@@ -1,4 +1,5 @@
 import 'package:app_loja_digital/models/order.dart';
+import 'package:app_loja_digital/screens/orders/components/order_timeline.dart';
 import 'package:flutter/material.dart';
 
 class OrderTile extends StatelessWidget {
@@ -52,6 +53,10 @@ class OrderTile extends StatelessWidget {
           ],
         ),
         children: <Widget>[
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            child: OrderTimeline(order.status),
+          ),
           for (final item in order.itemsData)
             ListTile(
               leading: (item['image'] as String?)?.isNotEmpty == true

@@ -2,7 +2,10 @@ import 'package:app_loja_digital/models/cart_manager.dart';
 import 'package:app_loja_digital/models/home_manager.dart';
 import 'package:app_loja_digital/models/orders_manager.dart';
 import 'package:app_loja_digital/models/product_manager.dart';
+import 'package:app_loja_digital/models/store.dart';
+import 'package:app_loja_digital/models/stores_manager.dart';
 import 'package:app_loja_digital/models/user_manager.dart';
+import 'package:app_loja_digital/screens/edit_store/edit_store_screen.dart';
 import 'package:app_loja_digital/screens/base/base_screen.dart';
 import 'package:app_loja_digital/screens/login/login_screen.dart';
 import 'package:app_loja_digital/screens/signup/signup_screen.dart';
@@ -52,6 +55,12 @@ void main() async {
         // HomeManager (seções editáveis da tela inicial)
         ChangeNotifierProvider<HomeManager>(
           create: (_) => HomeManager(),
+          lazy: false,
+        ),
+
+        // StoresManager (lojas)
+        ChangeNotifierProvider<StoresManager>(
+          create: (_) => StoresManager(),
           lazy: false,
         ),
 
@@ -113,6 +122,10 @@ class MyApp extends StatelessWidget {
             return MaterialPageRoute(
               builder: (_) =>
                   EditProductScreen(settings.arguments as Product?),
+            );
+          case '/edit_store':
+            return MaterialPageRoute(
+              builder: (_) => EditStoreScreen(settings.arguments as Store?),
             );
           case '/base':
           default:

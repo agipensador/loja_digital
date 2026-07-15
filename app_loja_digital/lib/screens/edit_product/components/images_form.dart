@@ -1,5 +1,4 @@
-import 'dart:io';
-
+import 'package:app_loja_digital/common/picked_image.dart';
 import 'package:app_loja_digital/models/product.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:flutter/material.dart';
@@ -24,18 +23,17 @@ class ImagesForm extends StatelessWidget {
         return null;
       },
       builder: (state) {
-        void onImageSelected(File file) {
-          state.value!.add(file);
-          state.didChange(state.value);
-          Navigator.of(context).pop();
-        }
-
         Future<void> pick(ImageSource source) async {
           try {
             final XFile? file = await picker.pickImage(source: source);
-            if (file != null) onImageSelected(File(file.path));
+            if (file != null) {
+              state.value!.add(file);
+              state.didChange(state.value);
+            }
           } catch (e) {
             debugPrint('Erro ao selecionar imagem: $e');
+          } finally {
+            if (context.mounted) Navigator.of(context).pop();
           }
         }
 
@@ -54,10 +52,7 @@ class ImagesForm extends StatelessWidget {
                     return Stack(
                       fit: StackFit.expand,
                       children: <Widget>[
-                        if (image is String)
-                          Image.network(image, fit: BoxFit.cover)
-                        else
-                          Image.file(image as File, fit: BoxFit.cover),
+                        PickedImage(image, fit: BoxFit.cover),
                         Align(
                           alignment: Alignment.topRight,
                           child: Padding(

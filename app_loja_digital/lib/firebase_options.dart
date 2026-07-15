@@ -17,10 +17,7 @@ import 'package:flutter/foundation.dart'
 class DefaultFirebaseOptions {
   static FirebaseOptions get currentPlatform {
     if (kIsWeb) {
-      throw UnsupportedError(
-        'DefaultFirebaseOptions have not been configured for web - '
-        'you can reconfigure this by running the FlutterFire CLI again.',
-      );
+      return web;
     }
     switch (defaultTargetPlatform) {
       case TargetPlatform.android:
@@ -56,7 +53,6 @@ class DefaultFirebaseOptions {
     projectId: 'loja-digital-ju0714',
     storageBucket: 'loja-digital-ju0714.firebasestorage.app',
   );
-
   static const FirebaseOptions ios = FirebaseOptions(
     apiKey: 'AIzaSyATVxwUpkF69j8k8C8C6kxMtBSzIVJzbj0',
     appId: '1:954686759385:ios:32999fafd199b7681cb9c8',
@@ -64,5 +60,13 @@ class DefaultFirebaseOptions {
     projectId: 'loja-digital-ju0714',
     storageBucket: 'loja-digital-ju0714.firebasestorage.app',
     iosBundleId: 'br.com.inforic.appLojaDigital',
+  );
+  static const FirebaseOptions web = FirebaseOptions(
+    apiKey: 'AIzaSyCiGfgBnTXeuC5pTOr2zZ1XMi4casOYZ1w',
+    appId: '1:954686759385:web:a5c9c285b916f6ca1cb9c8',
+    messagingSenderId: '954686759385',
+    projectId: 'loja-digital-ju0714',
+    authDomain: 'loja-digital-ju0714.firebaseapp.com',
+    storageBucket: 'loja-digital-ju0714.firebasestorage.app',
   );
 }
