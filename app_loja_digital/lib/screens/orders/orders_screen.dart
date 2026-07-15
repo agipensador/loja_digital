@@ -2,6 +2,7 @@ import 'package:app_loja_digital/common/custom_drawer/custom_drawer.dart';
 import 'package:app_loja_digital/models/orders_manager.dart';
 import 'package:app_loja_digital/models/user_manager.dart';
 import 'package:app_loja_digital/screens/orders/components/order_tile.dart';
+import 'package:app_loja_digital/screens/orders/components/orders_search_field.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -29,23 +30,33 @@ class OrdersScreen extends StatelessWidget {
                 ),
               ),
             )
-          : Consumer<OrdersManager>(
-              builder: (_, ordersManager, __) {
-                final orders = ordersManager.myOrders;
-                if (orders.isEmpty) {
-                  return const Center(
-                    child: Text(
-                      'Nenhum pedido ainda :(',
-                      style: TextStyle(color: Colors.white, fontSize: 16),
-                    ),
-                  );
-                }
-                return ListView.builder(
-                  padding: const EdgeInsets.all(4),
-                  itemCount: orders.length,
-                  itemBuilder: (_, index) => OrderTile(orders[index]),
-                );
-              },
+          : Column(
+              children: <Widget>[
+                const OrdersSearchField(),
+                Expanded(
+                  child: Consumer<OrdersManager>(
+                    builder: (_, ordersManager, __) {
+                      final orders = ordersManager.myOrders;
+                      if (orders.isEmpty) {
+                        return Center(
+                          child: Text(
+                            ordersManager.search.isEmpty
+                                ? 'Nenhum pedido ainda :('
+                                : 'Nenhum pedido encontrado.',
+                            style: const TextStyle(
+                                color: Colors.white, fontSize: 16),
+                          ),
+                        );
+                      }
+                      return ListView.builder(
+                        padding: const EdgeInsets.all(4),
+                        itemCount: orders.length,
+                        itemBuilder: (_, index) => OrderTile(orders[index]),
+                      );
+                    },
+                  ),
+                ),
+              ],
             ),
     );
   }

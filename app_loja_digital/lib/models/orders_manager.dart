@@ -22,6 +22,28 @@ class OrdersManager extends ChangeNotifier {
     Status.transporting,
   };
 
+  String _search = '';
+  String get search => _search;
+  set search(String value) {
+    _search = value;
+    notifyListeners();
+  }
+
+  /// Busca por ID do pedido (#000123 ou o id cru) ou nome de produto.
+  bool _matchesSearch(Order order) {
+    final q = _search.trim().toLowerCase();
+    if (q.isEmpty) return true;
+    final numeric = q.replaceAll(RegExp(r'[^0-9]'), '');
+    if (order.orderId.toLowerCase().contains(q)) return true;
+    if (order.formattedId.toLowerCase().contains(q)) return true;
+    if (numeric.isNotEmpty && order.orderId.contains(numeric)) return true;
+    for (final item in order.itemsData) {
+      final name = (item['name'] ?? '').toString().toLowerCase();
+      if (name.contains(q)) return true;
+    }
+    return false;
+  }
+
   StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _subscription;
 
   OrdersManager updateUser(UserManager userManager) {
@@ -59,13 +81,14 @@ class OrdersManager extends ChangeNotifier {
   }
 
   /// Pedidos do próprio usuário (funciona tanto para admin quanto cliente).
-  List<Order> get myOrders =>
-      orders.where((o) => o.userId == userId).toList();
+  List<Order> get myOrders => orders
+      .where((o) => o.userId == userId && _matchesSearch(o))
+      .toList();
 
-  /// Lista aplicada aos filtros de status (usada no painel admin).
-  List<Order> get filteredOrders {
-    return orders.where((o) => statusFilter.contains(o.status)).toList();
-  }
+  /// Lista aplicada aos filtros de status e busca (usada no painel admin).
+  List<Order> get filteredOrders => orders
+      .where((o) => statusFilter.contains(o.status) && _matchesSearch(o))
+      .toList();
 
   void setStatusFilter({required Status status, required bool enabled}) {
     if (enabled) {

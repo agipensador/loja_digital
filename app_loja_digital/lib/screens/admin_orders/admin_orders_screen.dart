@@ -2,6 +2,7 @@ import 'package:app_loja_digital/common/custom_drawer/custom_drawer.dart';
 import 'package:app_loja_digital/models/order.dart';
 import 'package:app_loja_digital/models/orders_manager.dart';
 import 'package:app_loja_digital/screens/orders/components/order_tile.dart';
+import 'package:app_loja_digital/screens/orders/components/orders_search_field.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -32,6 +33,7 @@ class AdminOrdersScreen extends StatelessWidget {
           final orders = ordersManager.filteredOrders;
           return Column(
             children: <Widget>[
+              const OrdersSearchField(),
               // Filtros como chips/containers coloridos na própria tela.
               Container(
                 color: Colors.white,
