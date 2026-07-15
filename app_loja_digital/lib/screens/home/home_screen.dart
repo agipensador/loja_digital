@@ -95,8 +95,18 @@ class HomeScreen extends StatelessWidget {
                 children.add(const AddSectionWidget());
               }
 
-              return SliverList(
-                delegate: SliverChildListDelegate(children),
+              // Em telas grandes (web), centraliza o conteúdo num limite de
+              // largura para as imagens não ficarem gigantes.
+              return SliverToBoxAdapter(
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 720),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: children,
+                    ),
+                  ),
+                ),
               );
             },
           ),

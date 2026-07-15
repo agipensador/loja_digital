@@ -15,12 +15,24 @@ class EditSectionImages extends StatelessWidget {
     final section = context.watch<Section>();
     final picker = ImagePicker();
 
+    Future<void> linkProduct(SectionItem item) async {
+      final Product? product = await Navigator.of(context).push<Product>(
+        MaterialPageRoute(builder: (_) => const SelectProductScreen()),
+      );
+      if (product != null) {
+        section.setItemProduct(item, product.id);
+      }
+    }
+
     Future<void> pick(ImageSource source) async {
       Navigator.of(context).pop();
       try {
         final XFile? file = await picker.pickImage(source: source);
         if (file != null) {
-          section.addItem(SectionItem(image: file));
+          final item = SectionItem(image: file);
+          section.addItem(item);
+          // Já oferece vincular a imagem a um produto (ou criar um novo).
+          if (context.mounted) await linkProduct(item);
         }
       } catch (e) {
         debugPrint('Erro ao selecionar imagem: $e');
@@ -48,15 +60,6 @@ class EditSectionImages extends StatelessWidget {
           ),
         ),
       );
-    }
-
-    Future<void> linkProduct(SectionItem item) async {
-      final Product? product = await Navigator.of(context).push<Product>(
-        MaterialPageRoute(builder: (_) => const SelectProductScreen()),
-      );
-      if (product != null) {
-        section.setItemProduct(item, product.id);
-      }
     }
 
     return Column(
