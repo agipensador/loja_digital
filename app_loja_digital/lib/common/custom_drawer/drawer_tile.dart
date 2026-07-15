@@ -21,8 +21,11 @@ class DrawerTile extends StatelessWidget {
 
     return InkWell(
       onTap: () {
-        context.read<PageManager>().setPage(page);
-        Navigator.of(context).pop();
+        final pageManager = context.read<PageManager>();
+        // Fecha o drawer e volta para a BaseScreen, descartando qualquer
+        // rota empilhada (ex: Favoritos), antes de trocar de página.
+        Navigator.of(context).popUntil((route) => route.isFirst);
+        pageManager.setPage(page);
       },
       child: SizedBox(
         height: 60,

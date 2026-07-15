@@ -46,7 +46,8 @@ class CustomDrawer extends StatelessWidget {
                         style: TextStyle(
                             fontSize: 16, color: Colors.grey[700])),
                     onTap: () {
-                      Navigator.of(context).pop();
+                      Navigator.of(context)
+                          .popUntil((route) => route.isFirst);
                       Navigator.of(context).pushNamed('/favorites');
                     },
                   ),
