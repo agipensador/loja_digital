@@ -1,3 +1,4 @@
+import 'package:app_loja_digital/common/store_image.dart';
 import 'package:app_loja_digital/models/item_size.dart';
 import 'package:app_loja_digital/models/product.dart';
 import 'package:app_loja_digital/models/product_manager.dart';
@@ -36,8 +37,10 @@ class _StockPanelScreenState extends State<StockPanelScreen> {
               visible = out;
               break;
             case _StockFilter.all:
-              visible = all;
+              visible = List.of(all);
           }
+          // Menor estoque primeiro: o que está acabando aparece no topo.
+          visible.sort((a, b) => a.totalStock.compareTo(b.totalStock));
 
           return Column(
             children: <Widget>[
@@ -185,10 +188,11 @@ class _StockProductTileState extends State<_StockProductTile> {
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       child: ExpansionTile(
-        leading: p.images.isNotEmpty
-            ? Image.network(p.images.first,
-                width: 44, height: 44, fit: BoxFit.cover)
-            : const Icon(Icons.image_not_supported),
+        leading: SizedBox(
+          width: 44,
+          height: 44,
+          child: StoreImage(p.images.isNotEmpty ? p.images.first : null),
+        ),
         title: Text(p.name),
         subtitle: Row(
           children: <Widget>[

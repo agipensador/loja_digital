@@ -1,3 +1,4 @@
+import 'package:app_loja_digital/common/store_image.dart';
 import 'package:app_loja_digital/models/product.dart';
 import 'package:flutter/material.dart';
 
@@ -23,13 +24,9 @@ class ProductListTile extends StatelessWidget {
             children: <Widget>[
               AspectRatio(
                 aspectRatio: 1,
-                child: product.images.isNotEmpty
-                    ? Image.network(product.images.first, fit: BoxFit.cover)
-                    : Container(
-                        color: Colors.grey[200],
-                        child: const Icon(Icons.image_not_supported,
-                            color: Colors.grey),
-                      ),
+                child: StoreImage(
+                  product.images.isNotEmpty ? product.images.first : null,
+                ),
               ),
               const SizedBox(width: 16),
               Expanded(

@@ -1,4 +1,4 @@
-import 'package:app_loja_digital/screens/products/components/product_list_tile.dart';
+import 'package:app_loja_digital/screens/products/components/product_grid_tile.dart';
 import 'package:app_loja_digital/screens/products/components/search_dialog.dart';
 import 'package:app_loja_digital/models/user_manager.dart';
 import 'package:flutter/material.dart';
@@ -123,11 +123,30 @@ class ProductsScreen extends StatelessWidget {
                   ),
                 ),
               Expanded(
-                child: ListView.builder(
-                  padding: const EdgeInsets.all(4),
-                  itemCount: filteredProducts.length,
-                  itemBuilder: (_, index) {
-                    return ProductListTile(filteredProducts[index]);
+                child: LayoutBuilder(
+                  builder: (_, constraints) {
+                    final w = constraints.maxWidth;
+                    // Colunas conforme a largura (responsivo web/mobile).
+                    final cols = w >= 1100
+                        ? 5
+                        : w >= 850
+                            ? 4
+                            : w >= 600
+                                ? 3
+                                : 2;
+                    return GridView.builder(
+                      padding: const EdgeInsets.all(8),
+                      gridDelegate:
+                          SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: cols,
+                        crossAxisSpacing: 8,
+                        mainAxisSpacing: 8,
+                        childAspectRatio: 0.72,
+                      ),
+                      itemCount: filteredProducts.length,
+                      itemBuilder: (_, index) =>
+                          ProductGridTile(filteredProducts[index]),
+                    );
                   },
                 ),
               ),

@@ -44,6 +44,12 @@ class _ProductImagesCarouselState extends State<ProductImagesCarousel> {
               url,
               fit: BoxFit.cover,
               width: double.infinity,
+              errorBuilder: (_, __, ___) => Container(
+                color: const Color(0xFFEDEDED),
+                alignment: Alignment.center,
+                child: Icon(Icons.image_outlined,
+                    color: Colors.grey[400], size: 48),
+              ),
             );
           }).toList(),
         ),

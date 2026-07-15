@@ -1,3 +1,4 @@
+import 'package:app_loja_digital/common/store_image.dart';
 import 'package:app_loja_digital/models/product_manager.dart';
 import 'package:app_loja_digital/models/section.dart';
 import 'package:app_loja_digital/models/section_item.dart';
@@ -42,9 +43,9 @@ class SectionStaggered extends StatelessWidget {
                 }
               }
             },
-            child: item.image is String
-                ? Image.network(item.image as String, fit: BoxFit.cover)
-                : Container(color: Colors.white24),
+            child: StoreImage(
+              item.image is String ? item.image as String : null,
+            ),
           ),
         );
       }),
