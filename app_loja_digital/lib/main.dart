@@ -12,6 +12,7 @@ import 'package:app_loja_digital/models/stores_manager.dart';
 import 'package:app_loja_digital/models/user_manager.dart';
 import 'package:app_loja_digital/screens/edit_store/edit_store_screen.dart';
 import 'package:app_loja_digital/screens/favorites/favorites_screen.dart';
+import 'package:app_loja_digital/screens/profile/profile_screen.dart';
 import 'package:app_loja_digital/screens/base/base_screen.dart';
 import 'package:app_loja_digital/screens/login/login_screen.dart';
 import 'package:app_loja_digital/screens/signup/signup_screen.dart';
@@ -153,6 +154,10 @@ class MyApp extends StatelessWidget {
           case '/favorites':
             return MaterialPageRoute(
               builder: (_) => const FavoritesScreen(),
+            );
+          case '/profile':
+            return MaterialPageRoute(
+              builder: (_) => const ProfileScreen(),
             );
           case '/payment_methods':
             return MaterialPageRoute(

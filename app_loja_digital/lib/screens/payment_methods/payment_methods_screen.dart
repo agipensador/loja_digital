@@ -1,4 +1,5 @@
 import 'package:app_loja_digital/models/payment_manager.dart';
+import 'package:app_loja_digital/screens/payment_methods/components/brand_icon.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -39,7 +40,13 @@ class PaymentMethodsScreen extends StatelessWidget {
                   value: card.id!,
                   groupValue: payment.selectedMethod,
                   onChanged: (v) => payment.selectMethod(v!),
-                  title: Text('${card.brandName} ${card.masked}'),
+                  title: Row(
+                    children: <Widget>[
+                      BrandIcon(card.brand, color: primaryColor, size: 28),
+                      const SizedBox(width: 8),
+                      Expanded(child: Text(card.masked)),
+                    ],
+                  ),
                   subtitle: Text(
                     '${card.holder} · ${card.expiry}'
                     '${card.debit ? ' · Débito' : ' · Crédito'}',

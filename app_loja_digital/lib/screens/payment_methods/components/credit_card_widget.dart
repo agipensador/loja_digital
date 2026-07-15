@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:app_loja_digital/models/payment_card.dart';
+import 'package:app_loja_digital/screens/payment_methods/components/brand_icon.dart';
 import 'package:flutter/material.dart';
 
 /// Cartão visual com animação de virar (frente <-> verso).
@@ -115,13 +116,7 @@ class _CreditCardWidgetState extends State<CreditCardWidget>
                     borderRadius: BorderRadius.circular(6),
                   ),
                 ),
-                Text(
-                  PaymentCard.brandLabel(brand),
-                  style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16),
-                ),
+                BrandIcon(brand, color: Colors.white, size: 40),
               ],
             ),
             const Spacer(),

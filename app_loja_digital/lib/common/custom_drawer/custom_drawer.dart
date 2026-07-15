@@ -54,16 +54,16 @@ class CustomDrawer extends StatelessWidget {
                   ListTile(
                     leading: Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 8),
-                      child: Icon(Icons.credit_card,
+                      child: Icon(Icons.person,
                           size: 32, color: Colors.grey[700]),
                     ),
-                    title: Text('Formas de pagamento',
+                    title: Text('Meu perfil',
                         style: TextStyle(
                             fontSize: 16, color: Colors.grey[700])),
                     onTap: () {
                       Navigator.of(context)
                           .popUntil((route) => route.isFirst);
-                      Navigator.of(context).pushNamed('/payment_methods');
+                      Navigator.of(context).pushNamed('/profile');
                     },
                   ),
                   const DrawerTile(
