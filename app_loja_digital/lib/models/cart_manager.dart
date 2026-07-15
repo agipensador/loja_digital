@@ -178,7 +178,7 @@ class CartManager extends ChangeNotifier {
   // Checkout — cria o pedido e dá baixa no estoque de forma transacional.
   // ---------------------------------------------------------------------------
 
-  Future<Order> checkout() async {
+  Future<Order> checkout({String paymentMethod = ''}) async {
     if (_userId == null) {
       throw StateError('Usuário não logado');
     }
@@ -190,6 +190,7 @@ class CartManager extends ChangeNotifier {
     }
 
     final order = Order.fromCartManager(this);
+    order.payment = paymentMethod;
 
     // Agrupa os itens por produto (um produto pode ter vários tamanhos).
     final Map<String, List<CartProduct>> byProduct = {};

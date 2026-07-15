@@ -22,6 +22,7 @@ class Order {
     userId = (data['user'] ?? '') as String;
     address = Map<String, dynamic>.from(data['address'] as Map? ?? {});
     date = data['date'] as Timestamp?;
+    payment = (data['payment'] ?? '') as String;
     status = Status.values[(data['status'] ?? 0) as int];
   }
 
@@ -38,6 +39,7 @@ class Order {
   late Map<String, dynamic> address;
   Timestamp? date;
   Status status = Status.preparing;
+  String payment = '';
 
   Map<String, dynamic> toMap() {
     return {
@@ -46,6 +48,7 @@ class Order {
       'user': userId,
       'address': address,
       'status': status.index,
+      'payment': payment,
       'date': Timestamp.now(),
     };
   }

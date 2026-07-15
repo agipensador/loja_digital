@@ -2,7 +2,11 @@ import 'package:app_loja_digital/models/cart_manager.dart';
 import 'package:app_loja_digital/models/favorites_manager.dart';
 import 'package:app_loja_digital/models/home_manager.dart';
 import 'package:app_loja_digital/models/orders_manager.dart';
+import 'package:app_loja_digital/models/payment_manager.dart';
 import 'package:app_loja_digital/models/product_manager.dart';
+import 'package:app_loja_digital/services/payment_service.dart';
+import 'package:app_loja_digital/screens/payment_methods/add_card_screen.dart';
+import 'package:app_loja_digital/screens/payment_methods/payment_methods_screen.dart';
 import 'package:app_loja_digital/models/store.dart';
 import 'package:app_loja_digital/models/stores_manager.dart';
 import 'package:app_loja_digital/models/user_manager.dart';
@@ -89,6 +93,15 @@ void main() async {
               favoritesManager!..updateUser(userManager),
           lazy: false,
         ),
+
+        // PaymentManager depende do UserManager.
+        // Troque FakePaymentService por MercadoPagoService ao integrar o MP.
+        ChangeNotifierProxyProvider<UserManager, PaymentManager>(
+          create: (_) => PaymentManager(FakePaymentService()),
+          update: (_, userManager, paymentManager) =>
+              paymentManager!..updateUser(userManager),
+          lazy: false,
+        ),
       ],
       child: const MyApp(),
     ),
@@ -140,6 +153,14 @@ class MyApp extends StatelessWidget {
           case '/favorites':
             return MaterialPageRoute(
               builder: (_) => const FavoritesScreen(),
+            );
+          case '/payment_methods':
+            return MaterialPageRoute(
+              builder: (_) => const PaymentMethodsScreen(),
+            );
+          case '/add_card':
+            return MaterialPageRoute(
+              builder: (_) => const AddCardScreen(),
             );
           case '/base':
           default:

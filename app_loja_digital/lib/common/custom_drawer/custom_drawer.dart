@@ -51,6 +51,21 @@ class CustomDrawer extends StatelessWidget {
                       Navigator.of(context).pushNamed('/favorites');
                     },
                   ),
+                  ListTile(
+                    leading: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      child: Icon(Icons.credit_card,
+                          size: 32, color: Colors.grey[700]),
+                    ),
+                    title: Text('Formas de pagamento',
+                        style: TextStyle(
+                            fontSize: 16, color: Colors.grey[700])),
+                    onTap: () {
+                      Navigator.of(context)
+                          .popUntil((route) => route.isFirst);
+                      Navigator.of(context).pushNamed('/payment_methods');
+                    },
+                  ),
                   const DrawerTile(
                       iconData: Icons.playlist_add_check,
                       title: 'Meus Pedidos',

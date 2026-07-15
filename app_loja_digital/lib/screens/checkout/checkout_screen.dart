@@ -1,6 +1,7 @@
 import 'package:app_loja_digital/common/price_card.dart';
 import 'package:app_loja_digital/models/cart_manager.dart';
 import 'package:app_loja_digital/models/order.dart';
+import 'package:app_loja_digital/models/payment_manager.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -15,9 +16,17 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   bool _loading = false;
 
   Future<void> _finish(CartManager cartManager) async {
+    final payment = context.read<PaymentManager>();
+    if (payment.selectedMethod == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Escolha uma forma de pagamento')),
+      );
+      return;
+    }
     setState(() => _loading = true);
     try {
-      final Order order = await cartManager.checkout();
+      final Order order =
+          await cartManager.checkout(paymentMethod: payment.selectedLabel);
       if (!mounted) return;
       _showSuccess(order);
     } on CheckoutException catch (e) {
@@ -89,6 +98,29 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                 ],
               ),
             ),
+          ),
+          Consumer<PaymentManager>(
+            builder: (_, payment, __) {
+              return Card(
+                margin:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: ListTile(
+                  leading: Icon(
+                    payment.selectedMethod == kPixMethod
+                        ? Icons.pix
+                        : Icons.credit_card,
+                    color: Theme.of(context).primaryColor,
+                  ),
+                  title: const Text('Forma de pagamento'),
+                  subtitle: Text(payment.selectedLabel),
+                  trailing: TextButton(
+                    onPressed: () => Navigator.of(context)
+                        .pushNamed('/payment_methods'),
+                    child: const Text('Alterar'),
+                  ),
+                ),
+              );
+            },
           ),
           PriceCard(
             buttonText: 'Finalizar Pedido',
