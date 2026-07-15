@@ -5,6 +5,7 @@ import 'package:app_loja_digital/screens/addresses/addresses_screen.dart';
 import 'package:app_loja_digital/models/favorites_manager.dart';
 import 'package:app_loja_digital/models/home_manager.dart';
 import 'package:app_loja_digital/screens/a2_publish/a2_publish_screen.dart';
+import 'package:app_loja_digital/screens/stock/stock_panel_screen.dart';
 import 'package:app_loja_digital/models/orders_manager.dart';
 import 'package:app_loja_digital/models/payment_manager.dart';
 import 'package:app_loja_digital/models/product_manager.dart';
@@ -183,6 +184,10 @@ class MyApp extends StatelessWidget {
           case '/a2_publish':
             return MaterialPageRoute(
               builder: (_) => const A2PublishScreen(),
+            );
+          case '/stock':
+            return MaterialPageRoute(
+              builder: (_) => const StockPanelScreen(),
             );
           case '/payment_methods':
             return MaterialPageRoute(

@@ -14,6 +14,7 @@ class Product extends ChangeNotifier {
     List<String>? images,
     List<ItemSize>? sizes,
     this.deleted = false,
+    this.lowStockThreshold = 5,
   }) {
     this.images = images ?? [];
     this.sizes = sizes ?? [];
@@ -26,6 +27,7 @@ class Product extends ChangeNotifier {
     description = (data['description'] ?? '') as String;
     category = (data['category'] ?? 'Outros') as String;
     deleted = (data['deleted'] ?? false) as bool;
+    lowStockThreshold = (data['lowStockThreshold'] ?? 5) as int;
     images = List<String>.from(data['images'] as List<dynamic>? ?? []);
     sizes = (data['sizes'] as List<dynamic>? ?? [])
         .map((s) => ItemSize.fromMap(s as Map<String, dynamic>))
@@ -47,6 +49,9 @@ class Product extends ChangeNotifier {
   late List<String> images;
   late List<ItemSize> sizes;
   bool deleted = false;
+
+  /// Alerta o admin quando o estoque total fica <= este valor.
+  int lowStockThreshold = 5;
 
   /// Imagens em edição: pode conter String (URL já salva) ou File (nova imagem).
   List<dynamic> newImages = [];
@@ -74,6 +79,23 @@ class Product extends ChangeNotifier {
   }
 
   bool get hasStock => totalStock > 0;
+
+  bool get isOutOfStock => totalStock <= 0;
+
+  /// Estoque baixo: ainda tem itens, mas <= limite de alerta.
+  bool get isLowStock => totalStock > 0 && totalStock <= lowStockThreshold;
+
+  /// Atualiza somente os estoques/variantes no Firestore (sem tocar imagens).
+  Future<void> updateStock() async {
+    await firestoreRef.update({'sizes': exportSizeList()});
+  }
+
+  /// Define o limite de alerta de estoque baixo.
+  Future<void> setLowStockThreshold(int value) async {
+    lowStockThreshold = value < 0 ? 0 : value;
+    await firestoreRef.update({'lowStockThreshold': lowStockThreshold});
+    notifyListeners();
+  }
 
   /// Menor preço entre os tamanhos com estoque (ou o menor preço se nenhum tiver).
   num get basePrice {
@@ -108,6 +130,7 @@ class Product extends ChangeNotifier {
       'name': name,
       'description': description,
       'category': category,
+      'lowStockThreshold': lowStockThreshold,
       'sizes': exportSizeList(),
       'deleted': deleted,
     };
@@ -171,6 +194,7 @@ class Product extends ChangeNotifier {
       images: List.from(images),
       sizes: sizes.map((size) => size.clone()).toList(),
       deleted: deleted,
+      lowStockThreshold: lowStockThreshold,
     );
   }
 

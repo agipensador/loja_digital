@@ -103,6 +103,13 @@ class ProfileScreen extends StatelessWidget {
                           fontWeight: FontWeight.bold, color: Colors.grey)),
                 ),
                 ListTile(
+                  leading: Icon(Icons.inventory_2, color: primaryColor),
+                  title: const Text('Controle de estoque'),
+                  subtitle: const Text('Estoque por item e alertas'),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => Navigator.of(context).pushNamed('/stock'),
+                ),
+                ListTile(
                   leading: Icon(Icons.favorite_border, color: primaryColor),
                   title: const Text('Publicar no A2'),
                   subtitle: const Text('Enviar até 10 produtos ao app A2'),
