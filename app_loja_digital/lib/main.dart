@@ -1,5 +1,7 @@
 import 'package:app_loja_digital/models/a2_publish_manager.dart';
+import 'package:app_loja_digital/models/address_manager.dart';
 import 'package:app_loja_digital/models/cart_manager.dart';
+import 'package:app_loja_digital/screens/addresses/addresses_screen.dart';
 import 'package:app_loja_digital/models/favorites_manager.dart';
 import 'package:app_loja_digital/models/home_manager.dart';
 import 'package:app_loja_digital/screens/a2_publish/a2_publish_screen.dart';
@@ -102,6 +104,14 @@ void main() async {
           lazy: false,
         ),
 
+        // AddressManager depende do UserManager (endereços salvos)
+        ChangeNotifierProxyProvider<UserManager, AddressManager>(
+          create: (_) => AddressManager(),
+          update: (_, userManager, addressManager) =>
+              addressManager!..updateUser(userManager),
+          lazy: false,
+        ),
+
         // PaymentManager depende do UserManager.
         // Troque FakePaymentService por MercadoPagoService ao integrar o MP.
         ChangeNotifierProxyProvider<UserManager, PaymentManager>(
@@ -165,6 +175,10 @@ class MyApp extends StatelessWidget {
           case '/profile':
             return MaterialPageRoute(
               builder: (_) => const ProfileScreen(),
+            );
+          case '/addresses':
+            return MaterialPageRoute(
+              builder: (_) => const AddressesScreen(),
             );
           case '/a2_publish':
             return MaterialPageRoute(

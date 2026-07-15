@@ -1,5 +1,6 @@
 import 'package:app_loja_digital/common/price_card.dart';
 import 'package:app_loja_digital/models/address.dart';
+import 'package:app_loja_digital/models/address_manager.dart';
 import 'package:app_loja_digital/models/cart_manager.dart';
 import 'package:app_loja_digital/services/cep_service.dart';
 import 'package:flutter/material.dart';
@@ -53,6 +54,43 @@ class _AddressScreenState extends State<AddressScreen> {
       ),
       body: ListView(
         children: <Widget>[
+          Consumer<AddressManager>(
+            builder: (_, addressManager, __) {
+              if (addressManager.addresses.isEmpty) {
+                return const SizedBox.shrink();
+              }
+              return Card(
+                margin:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    const Padding(
+                      padding: EdgeInsets.fromLTRB(16, 12, 16, 0),
+                      child: Text('Endereços salvos',
+                          style: TextStyle(
+                              fontWeight: FontWeight.w600, fontSize: 16)),
+                    ),
+                    for (final saved in addressManager.addresses)
+                      RadioListTile<String>(
+                        value: saved.id!,
+                        groupValue: addressManager.selectedId,
+                        onChanged: (v) {
+                          addressManager.select(v!);
+                          cartManager.setAddress(saved.address);
+                          _cepController.text = saved.address.zipCode;
+                        },
+                        title: Text(saved.title,
+                            style: const TextStyle(
+                                fontWeight: FontWeight.bold)),
+                        subtitle: Text(saved.address.toString()),
+                        isThreeLine: true,
+                      ),
+                  ],
+                ),
+              );
+            },
+          ),
           Card(
             margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             child: Padding(
@@ -61,7 +99,7 @@ class _AddressScreenState extends State<AddressScreen> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: <Widget>[
                   const Text(
-                    'Endereço de Entrega',
+                    'Ou informe outro endereço',
                     style: TextStyle(
                         fontWeight: FontWeight.w600, fontSize: 16),
                   ),

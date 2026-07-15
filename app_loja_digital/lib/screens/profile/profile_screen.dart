@@ -74,6 +74,13 @@ class ProfileScreen extends StatelessWidget {
               const SizedBox(height: 24),
               const Divider(),
               ListTile(
+                leading: Icon(Icons.location_on, color: primaryColor),
+                title: const Text('Meus endereços'),
+                subtitle: const Text('Até 5 endereços salvos'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => Navigator.of(context).pushNamed('/addresses'),
+              ),
+              ListTile(
                 leading: Icon(Icons.credit_card, color: primaryColor),
                 title: const Text('Formas de pagamento'),
                 subtitle: const Text('Cartões e Pix'),
