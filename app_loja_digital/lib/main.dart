@@ -1,6 +1,8 @@
+import 'package:app_loja_digital/models/a2_publish_manager.dart';
 import 'package:app_loja_digital/models/cart_manager.dart';
 import 'package:app_loja_digital/models/favorites_manager.dart';
 import 'package:app_loja_digital/models/home_manager.dart';
+import 'package:app_loja_digital/screens/a2_publish/a2_publish_screen.dart';
 import 'package:app_loja_digital/models/orders_manager.dart';
 import 'package:app_loja_digital/models/payment_manager.dart';
 import 'package:app_loja_digital/models/product_manager.dart';
@@ -69,6 +71,11 @@ void main() async {
         ChangeNotifierProvider<StoresManager>(
           create: (_) => StoresManager(),
           lazy: false,
+        ),
+
+        // A2PublishManager (publicar produtos no app A2 — só admin usa)
+        ChangeNotifierProvider<A2PublishManager>(
+          create: (_) => A2PublishManager(),
         ),
 
         // CartManager depende do UserManager -> ProxyProvider
@@ -158,6 +165,10 @@ class MyApp extends StatelessWidget {
           case '/profile':
             return MaterialPageRoute(
               builder: (_) => const ProfileScreen(),
+            );
+          case '/a2_publish':
+            return MaterialPageRoute(
+              builder: (_) => const A2PublishScreen(),
             );
           case '/payment_methods':
             return MaterialPageRoute(

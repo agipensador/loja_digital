@@ -77,12 +77,17 @@ class _AddCardScreenState extends State<AddCardScreen> {
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: <Widget>[
-            CreditCardWidget(
-              number: _number.text,
-              holder: _holder.text,
-              expiry: _expiry.text,
-              cvv: _cvv.text,
-              showBack: _cvvFocus.hasFocus,
+            Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 380),
+                child: CreditCardWidget(
+                  number: _number.text,
+                  holder: _holder.text,
+                  expiry: _expiry.text,
+                  cvv: _cvv.text,
+                  showBack: _cvvFocus.hasFocus,
+                ),
+              ),
             ),
             const SizedBox(height: 20),
             TextFormField(

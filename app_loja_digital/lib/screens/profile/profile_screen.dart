@@ -87,6 +87,23 @@ class ProfileScreen extends StatelessWidget {
                 trailing: const Icon(Icons.chevron_right),
                 onTap: () => Navigator.of(context).pushNamed('/favorites'),
               ),
+              if (userManager.adminEnabled) ...[
+                const Divider(),
+                const Padding(
+                  padding: EdgeInsets.fromLTRB(16, 8, 16, 0),
+                  child: Text('Administração',
+                      style: TextStyle(
+                          fontWeight: FontWeight.bold, color: Colors.grey)),
+                ),
+                ListTile(
+                  leading: Icon(Icons.favorite_border, color: primaryColor),
+                  title: const Text('Publicar no A2'),
+                  subtitle: const Text('Enviar até 10 produtos ao app A2'),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () =>
+                      Navigator.of(context).pushNamed('/a2_publish'),
+                ),
+              ],
               const Divider(),
               ListTile(
                 leading: const Icon(Icons.logout, color: Colors.red),
