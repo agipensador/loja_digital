@@ -31,8 +31,31 @@ class EditSectionImages extends StatelessWidget {
         if (file != null) {
           final item = SectionItem(image: file);
           section.addItem(item);
-          // Já oferece vincular a imagem a um produto (ou criar um novo).
-          if (context.mounted) await linkProduct(item);
+
+          // A imagem já entra na vitrine. Aqui só perguntamos se o admin
+          // quer vinculá-la a um produto — pular é totalmente opcional.
+          if (!context.mounted) return;
+          final bool link = await showDialog<bool>(
+                context: context,
+                builder: (_) => AlertDialog(
+                  title: const Text('Vincular a um produto?'),
+                  content: const Text(
+                      'Vincular faz o cliente ir ao produto ao tocar na '
+                      'imagem. Você também pode deixá-la só na vitrine.'),
+                  actions: <Widget>[
+                    TextButton(
+                      onPressed: () => Navigator.of(context).pop(false),
+                      child: const Text('Agora não'),
+                    ),
+                    TextButton(
+                      onPressed: () => Navigator.of(context).pop(true),
+                      child: const Text('Vincular'),
+                    ),
+                  ],
+                ),
+              ) ??
+              false;
+          if (link && context.mounted) await linkProduct(item);
         }
       } catch (e) {
         debugPrint('Erro ao selecionar imagem: $e');
