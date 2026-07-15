@@ -1,7 +1,8 @@
 import 'package:app_loja_digital/models/cart_manager.dart';
+import 'package:app_loja_digital/models/favorites_manager.dart';
+import 'package:app_loja_digital/screens/product/components/product_images_carousel.dart';
 import 'package:app_loja_digital/screens/product/components/size_widget.dart';
 import 'package:flutter/material.dart';
-import 'package:carousel_slider/carousel_slider.dart';
 import 'package:app_loja_digital/models/product.dart';
 import 'package:app_loja_digital/models/user_manager.dart';
 import 'package:provider/provider.dart';
@@ -22,6 +23,24 @@ class ProductScreen extends StatelessWidget {
           title: Text(product.name),
           centerTitle: true,
           actions: <Widget>[
+            Consumer2<UserManager, FavoritesManager>(
+              builder: (_, userManager, favorites, __) {
+                final bool fav =
+                    product.id != null && favorites.isFavorite(product.id!);
+                return IconButton(
+                  icon: Icon(fav ? Icons.favorite : Icons.favorite_border),
+                  color: fav ? Colors.redAccent : null,
+                  tooltip: 'Favoritar',
+                  onPressed: () {
+                    if (!userManager.isLoggedIn) {
+                      Navigator.of(context).pushNamed('/login');
+                      return;
+                    }
+                    if (product.id != null) favorites.toggle(product.id!);
+                  },
+                );
+              },
+            ),
             Consumer<UserManager>(
               builder: (_, userManager, __) {
                 if (userManager.adminEnabled && !product.deleted) {
@@ -43,29 +62,7 @@ class ProductScreen extends StatelessWidget {
         backgroundColor: Colors.white,
         body: ListView(
           children: <Widget>[
-            CarouselSlider(
-              options: CarouselOptions(
-                height: MediaQuery.of(context).size.width,
-                enableInfiniteScroll: false,
-                viewportFraction: 1,
-              ),
-              items: product.images.isEmpty
-                  ? [
-                      Container(
-                        color: Colors.grey[200],
-                        alignment: Alignment.center,
-                        child: const Icon(Icons.image_not_supported,
-                            size: 64, color: Colors.grey),
-                      ),
-                    ]
-                  : product.images.map((url) {
-                      return Image.network(
-                        url,
-                        fit: BoxFit.cover,
-                        width: double.infinity,
-                      );
-                    }).toList(),
-            ),
+            ProductImagesCarousel(product.images),
             Padding(
               padding: const EdgeInsets.all(16),
               child: Column(

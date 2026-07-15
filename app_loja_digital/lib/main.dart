@@ -1,4 +1,5 @@
 import 'package:app_loja_digital/models/cart_manager.dart';
+import 'package:app_loja_digital/models/favorites_manager.dart';
 import 'package:app_loja_digital/models/home_manager.dart';
 import 'package:app_loja_digital/models/orders_manager.dart';
 import 'package:app_loja_digital/models/product_manager.dart';
@@ -6,6 +7,7 @@ import 'package:app_loja_digital/models/store.dart';
 import 'package:app_loja_digital/models/stores_manager.dart';
 import 'package:app_loja_digital/models/user_manager.dart';
 import 'package:app_loja_digital/screens/edit_store/edit_store_screen.dart';
+import 'package:app_loja_digital/screens/favorites/favorites_screen.dart';
 import 'package:app_loja_digital/screens/base/base_screen.dart';
 import 'package:app_loja_digital/screens/login/login_screen.dart';
 import 'package:app_loja_digital/screens/signup/signup_screen.dart';
@@ -79,6 +81,14 @@ void main() async {
               ordersManager!..updateUser(userManager),
           lazy: false,
         ),
+
+        // FavoritesManager depende do UserManager
+        ChangeNotifierProxyProvider<UserManager, FavoritesManager>(
+          create: (_) => FavoritesManager(),
+          update: (_, userManager, favoritesManager) =>
+              favoritesManager!..updateUser(userManager),
+          lazy: false,
+        ),
       ],
       child: const MyApp(),
     ),
@@ -126,6 +136,10 @@ class MyApp extends StatelessWidget {
           case '/edit_store':
             return MaterialPageRoute(
               builder: (_) => EditStoreScreen(settings.arguments as Store?),
+            );
+          case '/favorites':
+            return MaterialPageRoute(
+              builder: (_) => const FavoritesScreen(),
             );
           case '/base':
           default:

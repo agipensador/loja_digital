@@ -36,6 +36,20 @@ class CustomDrawer extends StatelessWidget {
                       iconData: Icons.home, title: 'Início', page: 0),
                   const DrawerTile(
                       iconData: Icons.list, title: 'Produtos', page: 1),
+                  ListTile(
+                    leading: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      child: Icon(Icons.favorite,
+                          size: 32, color: Colors.grey[700]),
+                    ),
+                    title: Text('Favoritos',
+                        style: TextStyle(
+                            fontSize: 16, color: Colors.grey[700])),
+                    onTap: () {
+                      Navigator.of(context).pop();
+                      Navigator.of(context).pushNamed('/favorites');
+                    },
+                  ),
                   const DrawerTile(
                       iconData: Icons.playlist_add_check,
                       title: 'Meus Pedidos',

@@ -17,10 +17,42 @@ class CartScreen extends StatelessWidget {
       body: Consumer<CartManager>(
         builder: (_, cartManager, __) {
           if (cartManager.items.isEmpty) {
-            return const Center(
-              child: Text(
-                'Seu carrinho está vazio :(',
-                style: TextStyle(fontSize: 18),
+            return Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: <Widget>[
+                    Icon(Icons.shopping_cart_outlined,
+                        size: 72, color: Colors.white.withAlpha(180)),
+                    const SizedBox(height: 16),
+                    const Text(
+                      'Seu carrinho está vazio',
+                      style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white),
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      'Adicione produtos para continuar a compra.\n'
+                      'Que tal começar pelos seus favoritos?',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(fontSize: 15, color: Colors.white70),
+                    ),
+                    const SizedBox(height: 24),
+                    ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.white,
+                        foregroundColor: Theme.of(context).primaryColor,
+                      ),
+                      icon: const Icon(Icons.favorite),
+                      label: const Text('Ver meus favoritos'),
+                      onPressed: () =>
+                          Navigator.of(context).pushNamed('/favorites'),
+                    ),
+                  ],
+                ),
               ),
             );
           }
