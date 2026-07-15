@@ -74,20 +74,11 @@ class Section extends ChangeNotifier {
   }
 
   Future<void> save(int pos) async {
-    final Map<String, dynamic> data = {
-      'name': name,
-      'type': type,
-      'pos': pos,
-    };
+    // Garante um id estável (sem gravar ainda) para os caminhos do Storage.
+    id ??= firestore.collection('home').doc().id;
 
-    if (id == null) {
-      final doc = await firestore.collection('home').add(data);
-      id = doc.id;
-    } else {
-      await firestoreRef.update(data);
-    }
-
-    // Upload de imagens novas (File) e coleta das URLs mantidas.
+    // 1) Upload das imagens novas ANTES de gravar. Se algum upload falhar,
+    // nada é escrito no Firestore — evita seção órfã/vazia.
     for (final item in items) {
       if (item.image is XFile) {
         final Reference ref = storageRef.child(
@@ -101,7 +92,15 @@ class Section extends ChangeNotifier {
       }
     }
 
-    // Remove imagens descartadas do Storage.
+    // 2) Grava a seção completa de uma vez.
+    await firestoreRef.set({
+      'name': name,
+      'type': type,
+      'pos': pos,
+      'items': items.map((i) => i.toMap()).toList(),
+    });
+
+    // 3) Remove imagens descartadas do Storage.
     for (final original in _originalItems) {
       if (!items.contains(original) &&
           original.image is String &&
@@ -114,10 +113,6 @@ class Section extends ChangeNotifier {
         }
       }
     }
-
-    await firestoreRef.update({
-      'items': items.map((i) => i.toMap()).toList(),
-    });
 
     _originalItems = List.from(items);
   }

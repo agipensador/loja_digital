@@ -1,1 +1,34 @@
-{"flutter":{"platforms":{"android":{"default":{"projectId":"loja-digital-ju0714","appId":"1:954686759385:android:18a00934fbd92d081cb9c8","fileOutput":"android/app/google-services.json"}},"ios":{"default":{"projectId":"loja-digital-ju0714","appId":"1:954686759385:ios:32999fafd199b7681cb9c8","uploadDebugSymbols":false,"fileOutput":"ios/Runner/GoogleService-Info.plist"}},"dart":{"lib/firebase_options.dart":{"projectId":"loja-digital-ju0714","configurations":{"android":"1:954686759385:android:18a00934fbd92d081cb9c8","ios":"1:954686759385:ios:32999fafd199b7681cb9c8","web":"1:954686759385:web:a5c9c285b916f6ca1cb9c8"}}}}}}
+{
+  "storage": {
+    "rules": "storage.rules"
+  },
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "loja-digital-ju0714",
+          "appId": "1:954686759385:android:18a00934fbd92d081cb9c8",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "ios": {
+        "default": {
+          "projectId": "loja-digital-ju0714",
+          "appId": "1:954686759385:ios:32999fafd199b7681cb9c8",
+          "uploadDebugSymbols": false,
+          "fileOutput": "ios/Runner/GoogleService-Info.plist"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "loja-digital-ju0714",
+          "configurations": {
+            "android": "1:954686759385:android:18a00934fbd92d081cb9c8",
+            "ios": "1:954686759385:ios:32999fafd199b7681cb9c8",
+            "web": "1:954686759385:web:a5c9c285b916f6ca1cb9c8"
+          }
+        }
+      }
+    }
+  }
+}

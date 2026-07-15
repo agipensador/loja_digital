@@ -54,7 +54,18 @@ class HomeScreen extends StatelessWidget {
                                 style: TextStyle(color: Colors.white)),
                           ),
                           TextButton(
-                            onPressed: homeManager.saveEditing,
+                            onPressed: () async {
+                              await homeManager.saveEditing();
+                              if (context.mounted &&
+                                  homeManager.error != null) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(homeManager.error!),
+                                    backgroundColor: Colors.red,
+                                  ),
+                                );
+                              }
+                            },
                             child: const Text('Salvar',
                                 style: TextStyle(color: Colors.white)),
                           ),

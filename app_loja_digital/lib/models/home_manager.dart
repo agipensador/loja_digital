@@ -16,8 +16,12 @@ class HomeManager extends ChangeNotifier {
 
   bool editing = false;
   bool loading = false;
+  String? error;
 
-  List<Section> get sections => editing ? _editingSections : _sections;
+  /// Na visualização, ignora seções sem imagens (evita "buracos" na home).
+  List<Section> get sections => editing
+      ? _editingSections
+      : _sections.where((s) => s.items.isNotEmpty).toList();
 
   Future<void> _loadSections() async {
     final snap = await firestore
@@ -51,34 +55,45 @@ class HomeManager extends ChangeNotifier {
   }
 
   Future<void> saveEditing() async {
-    bool valid = true;
+    error = null;
+
+    // Valida: toda seção precisa de ao menos uma imagem.
     for (final section in _editingSections) {
-      if (!section.valid()) valid = false;
+      if (!section.valid()) {
+        error = 'Cada seção precisa de ao menos uma imagem.';
+        notifyListeners();
+        return;
+      }
     }
-    if (!valid) return;
 
     loading = true;
     notifyListeners();
 
-    // Salva/atualiza cada seção com sua nova posição.
-    for (final section in _editingSections) {
-      await section.save(_editingSections.indexOf(section));
-    }
-
-    // Remove do Firestore as seções que foram apagadas na edição.
-    for (final section in List<Section>.from(_sections)) {
-      if (!_editingSections.any((s) => s.id == section.id)) {
-        await section.delete();
+    try {
+      // Salva/atualiza cada seção com sua nova posição.
+      for (final section in _editingSections) {
+        await section.save(_editingSections.indexOf(section));
       }
+
+      // Remove do Firestore as seções apagadas na edição.
+      for (final section in List<Section>.from(_sections)) {
+        if (!_editingSections.any((s) => s.id == section.id)) {
+          await section.delete();
+        }
+      }
+
+      _sections
+        ..clear()
+        ..addAll(_editingSections);
+
+      editing = false; // volta para a home normal (não editável)
+    } catch (e) {
+      // Mantém em modo de edição para o admin tentar de novo.
+      error = 'Não foi possível salvar: $e';
+    } finally {
+      loading = false;
+      notifyListeners();
     }
-
-    _sections
-      ..clear()
-      ..addAll(_editingSections);
-
-    editing = false;
-    loading = false;
-    notifyListeners();
   }
 
   void discardEditing() {
