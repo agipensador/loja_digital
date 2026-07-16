@@ -16,6 +16,9 @@ class ThemeManager extends ChangeNotifier {
   Color background = const Color(0xFFB98A82);
   Color menu = const Color(0xFFCBECF1);
 
+  /// Últimas cores usadas pelo admin (máx. 4).
+  List<Color> recentColors = [];
+
   DocumentReference<Map<String, dynamic>> get _ref =>
       _firestore.collection('config').doc('appearance');
 
@@ -28,6 +31,11 @@ class ThemeManager extends ChangeNotifier {
         primary = _color(data['primary'], primary);
         background = _color(data['background'], background);
         menu = _color(data['menu'], menu);
+        final recent = data['recentColors'];
+        if (recent is List) {
+          recentColors =
+              recent.whereType<int>().map((v) => Color(v)).toList();
+        }
       }
       notifyListeners();
     } catch (e) {
@@ -59,12 +67,27 @@ class ThemeManager extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Registra uma cor como "usada recentemente" (dedup, máx. 4) e persiste.
+  void pushRecent(Color c) {
+    recentColors.removeWhere((x) => x.toARGB32() == c.toARGB32());
+    recentColors.insert(0, c);
+    if (recentColors.length > 4) {
+      recentColors = recentColors.sublist(0, 4);
+    }
+    notifyListeners();
+    _ref.set(
+      {'recentColors': recentColors.map((c) => c.toARGB32()).toList()},
+      SetOptions(merge: true),
+    );
+  }
+
   Future<void> save() async {
     await _ref.set({
       'storeName': storeName,
       'primary': primary.toARGB32(),
       'background': background.toARGB32(),
       'menu': menu.toARGB32(),
+      'recentColors': recentColors.map((c) => c.toARGB32()).toList(),
     });
   }
 

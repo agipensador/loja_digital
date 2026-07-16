@@ -1,5 +1,6 @@
 import 'package:app_loja_digital/models/theme_manager.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import 'package:provider/provider.dart';
 
 /// Paleta de cores sugeridas (o admin toca para escolher).
@@ -49,17 +50,23 @@ class AppearanceScreen extends StatelessWidget {
               _ColorRow(
                 label: 'Cor principal (botões, topo)',
                 current: theme.primary,
-                onPick: theme.setPrimary,
+                recents: theme.recentColors,
+                onChange: theme.setPrimary,
+                onCommit: theme.pushRecent,
               ),
               _ColorRow(
                 label: 'Cor de fundo das páginas',
                 current: theme.background,
-                onPick: theme.setBackground,
+                recents: theme.recentColors,
+                onChange: theme.setBackground,
+                onCommit: theme.pushRecent,
               ),
               _ColorRow(
                 label: 'Cor do menu lateral',
                 current: theme.menu,
-                onPick: theme.setMenu,
+                recents: theme.recentColors,
+                onChange: theme.setMenu,
+                onCommit: theme.pushRecent,
               ),
 
               const SizedBox(height: 24),
@@ -165,12 +172,86 @@ class _ColorRow extends StatelessWidget {
   const _ColorRow({
     required this.label,
     required this.current,
-    required this.onPick,
+    required this.recents,
+    required this.onChange,
+    required this.onCommit,
   });
 
   final String label;
   final Color current;
-  final ValueChanged<Color> onPick;
+  final List<Color> recents;
+
+  /// Pré-visualização ao vivo (não registra como recente).
+  final ValueChanged<Color> onChange;
+
+  /// Confirma a escolha (registra como recente).
+  final ValueChanged<Color> onCommit;
+
+  void _pick(Color c) {
+    onChange(c);
+    onCommit(c);
+  }
+
+  Widget _swatch(Color c, {double size = 34}) {
+    final selected = c.toARGB32() == current.toARGB32();
+    return GestureDetector(
+      onTap: () => _pick(c),
+      child: Container(
+        width: size,
+        height: size,
+        decoration: BoxDecoration(
+          color: c,
+          shape: BoxShape.circle,
+          border: Border.all(
+            color: selected ? Colors.black : Colors.grey.shade300,
+            width: selected ? 3 : 1,
+          ),
+        ),
+        child: selected
+            ? Icon(Icons.check, size: 18, color: ThemeManager.onColor(c))
+            : null,
+      ),
+    );
+  }
+
+  /// Abre o seletor RGB/HSV com campo hexadecimal.
+  Future<void> _openPicker(BuildContext context) async {
+    Color temp = current;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Escolher cor'),
+        content: SingleChildScrollView(
+          child: ColorPicker(
+            pickerColor: current,
+            enableAlpha: false,
+            hexInputBar: true, // campo hexadecimal
+            paletteType: PaletteType.hsvWithHue,
+            labelTypes: const [],
+            onColorChanged: (c) {
+              temp = c;
+              onChange(c); // pré-visualiza no app na hora
+            },
+          ),
+        ),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Usar cor'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true) {
+      onCommit(temp);
+    } else {
+      onChange(current); // desfaz o preview
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -195,31 +276,43 @@ class _ColorRow extends StatelessWidget {
               ),
             ],
           ),
+          if (recents.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Row(
+              children: <Widget>[
+                const Text('Recentes:',
+                    style: TextStyle(fontSize: 12, color: Colors.grey)),
+                const SizedBox(width: 8),
+                ...recents.map((c) =>
+                    Padding(padding: const EdgeInsets.only(right: 6),
+                        child: _swatch(c, size: 28))),
+              ],
+            ),
+          ],
           const SizedBox(height: 8),
           Wrap(
             spacing: 8,
             runSpacing: 8,
-            children: _palette.map((c) {
-              final selected = c.toARGB32() == current.toARGB32();
-              return GestureDetector(
-                onTap: () => onPick(c),
+            children: <Widget>[
+              ..._palette.map(_swatch),
+              // Botão para seletor livre (RGB/HSV + hexadecimal)
+              GestureDetector(
+                onTap: () => _openPicker(context),
                 child: Container(
                   width: 34,
                   height: 34,
                   decoration: BoxDecoration(
-                    color: c,
                     shape: BoxShape.circle,
-                    border: Border.all(
-                      color: selected ? Colors.black : Colors.grey.shade300,
-                      width: selected ? 3 : 1,
-                    ),
+                    gradient: const SweepGradient(colors: [
+                      Colors.red, Colors.yellow, Colors.green,
+                      Colors.cyan, Colors.blue, Colors.purple, Colors.red,
+                    ]),
+                    border: Border.all(color: Colors.grey.shade400),
                   ),
-                  child: selected
-                      ? Icon(Icons.check, size: 18, color: ThemeManager.onColor(c))
-                      : null,
+                  child: const Icon(Icons.add, size: 18, color: Colors.white),
                 ),
-              );
-            }).toList(),
+              ),
+            ],
           ),
         ],
       ),
