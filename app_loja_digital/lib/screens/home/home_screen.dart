@@ -101,7 +101,7 @@ class HomeScreen extends StatelessWidget {
               return SliverToBoxAdapter(
                 child: Center(
                   child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 720),
+                    constraints: const BoxConstraints(maxWidth: 1200),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: children,

@@ -1,6 +1,8 @@
 import 'package:app_loja_digital/models/home_manager.dart';
 import 'package:app_loja_digital/models/section.dart';
 import 'package:app_loja_digital/screens/home/components/edit_section_images.dart';
+import 'package:app_loja_digital/screens/home/components/section_carousel.dart';
+import 'package:app_loja_digital/screens/home/components/section_grid.dart';
 import 'package:app_loja_digital/screens/home/components/section_header.dart';
 import 'package:app_loja_digital/screens/home/components/section_list.dart';
 import 'package:app_loja_digital/screens/home/components/section_staggered.dart';
@@ -26,13 +28,25 @@ class SectionWidget extends StatelessWidget {
             const SectionHeader(),
             if (homeManager.editing)
               const EditSectionImages()
-            else if (section.type == 'List')
-              SectionList(section)
             else
-              SectionStaggered(section),
+              _view(section),
           ],
         ),
       ),
     );
+  }
+
+  Widget _view(Section section) {
+    switch (section.type) {
+      case 'List':
+        return SectionList(section);
+      case 'Grid':
+        return SectionGrid(section);
+      case 'Carousel':
+        return SectionCarousel(section);
+      case 'Staggered':
+      default:
+        return SectionStaggered(section);
+    }
   }
 }
