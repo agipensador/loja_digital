@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:app_loja_digital/models/theme_manager.dart';
 import 'package:app_loja_digital/models/user_manager.dart';
 
 class CustomDrawerHeader extends StatelessWidget {
@@ -7,6 +8,8 @@ class CustomDrawerHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = context.watch<ThemeManager>();
+    final Color onMenu = theme.onMenu;
     return Container(
       padding: const EdgeInsets.fromLTRB(32, 24, 16, 8),
       height: 180,
@@ -16,20 +19,22 @@ class CustomDrawerHeader extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: <Widget>[
-              const Text(
-                'Loja Da\nJU',
+              Text(
+                theme.storeName,
                 style: TextStyle(
-                  fontSize: 34,
+                  fontSize: 30,
                   fontWeight: FontWeight.bold,
+                  color: onMenu,
                 ),
               ),
               Text(
                 'Olá, ${userManager.user?.name ?? ''}',
                 overflow: TextOverflow.ellipsis,
                 maxLines: 2,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
+                  color: onMenu,
                 ),
               ),
               GestureDetector(

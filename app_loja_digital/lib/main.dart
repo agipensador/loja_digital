@@ -5,10 +5,12 @@ import 'package:app_loja_digital/screens/addresses/addresses_screen.dart';
 import 'package:app_loja_digital/models/favorites_manager.dart';
 import 'package:app_loja_digital/models/home_manager.dart';
 import 'package:app_loja_digital/screens/a2_publish/a2_publish_screen.dart';
+import 'package:app_loja_digital/screens/appearance/appearance_screen.dart';
 import 'package:app_loja_digital/screens/stock/stock_panel_screen.dart';
 import 'package:app_loja_digital/models/orders_manager.dart';
 import 'package:app_loja_digital/models/payment_manager.dart';
 import 'package:app_loja_digital/models/product_manager.dart';
+import 'package:app_loja_digital/models/theme_manager.dart';
 import 'package:app_loja_digital/services/payment_service.dart';
 import 'package:app_loja_digital/screens/payment_methods/add_card_screen.dart';
 import 'package:app_loja_digital/screens/payment_methods/payment_methods_screen.dart';
@@ -50,6 +52,12 @@ void main() async {
         // PageManager depende do PageController (pega o PageController acima)
         ChangeNotifierProvider<PageManager>(
           create: (context) => PageManager(context.read<PageController>()),
+        ),
+
+        // ThemeManager (aparência personalizável)
+        ChangeNotifierProvider<ThemeManager>(
+          create: (_) => ThemeManager(),
+          lazy: false,
         ),
 
         // UserManager
@@ -132,13 +140,21 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = context.watch<ThemeManager>();
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'Loja da JU',
+      title: theme.storeName,
       theme: ThemeData(
-        primaryColor: const Color.fromARGB(255, 4, 125, 141),
-        scaffoldBackgroundColor: const Color.fromARGB(255, 4, 125, 141),
-        appBarTheme: const AppBarTheme(elevation: 0),
+        primaryColor: theme.primary,
+        scaffoldBackgroundColor: theme.background,
+        appBarTheme: AppBarTheme(
+          elevation: 0,
+          backgroundColor: theme.primary,
+          foregroundColor: Colors.white,
+        ),
+        floatingActionButtonTheme: FloatingActionButtonThemeData(
+          foregroundColor: theme.primary,
+        ),
         visualDensity: VisualDensity.adaptivePlatformDensity,
       ),
       // '/base' como initialRoute fazia o Flutter empilhar '/' E '/base'
@@ -188,6 +204,10 @@ class MyApp extends StatelessWidget {
           case '/stock':
             return MaterialPageRoute(
               builder: (_) => const StockPanelScreen(),
+            );
+          case '/appearance':
+            return MaterialPageRoute(
+              builder: (_) => const AppearanceScreen(),
             );
           case '/payment_methods':
             return MaterialPageRoute(

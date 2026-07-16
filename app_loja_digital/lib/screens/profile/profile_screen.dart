@@ -103,6 +103,13 @@ class ProfileScreen extends StatelessWidget {
                           fontWeight: FontWeight.bold, color: Colors.grey)),
                 ),
                 ListTile(
+                  leading: Icon(Icons.palette, color: primaryColor),
+                  title: const Text('Aparência do app'),
+                  subtitle: const Text('Cores, nome e visual da loja'),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => Navigator.of(context).pushNamed('/appearance'),
+                ),
+                ListTile(
                   leading: Icon(Icons.inventory_2, color: primaryColor),
                   title: const Text('Controle de estoque'),
                   subtitle: const Text('Estoque por item e alertas'),

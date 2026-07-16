@@ -1,5 +1,6 @@
 import 'package:app_loja_digital/common/custom_drawer/custom_drawer.dart';
 import 'package:app_loja_digital/models/home_manager.dart';
+import 'package:app_loja_digital/models/theme_manager.dart';
 import 'package:app_loja_digital/models/user_manager.dart';
 import 'package:app_loja_digital/screens/home/components/add_section_widget.dart';
 import 'package:app_loja_digital/screens/home/components/section_widget.dart';
@@ -13,7 +14,7 @@ class HomeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       drawer: const CustomDrawer(),
-      backgroundColor: const Color(0xFFB98A82),
+      backgroundColor: context.watch<ThemeManager>().background,
       body: CustomScrollView(
         slivers: <Widget>[
           SliverAppBar(

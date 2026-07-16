@@ -22,13 +22,23 @@ class _EditProductScreenState extends State<EditProductScreen> {
   late Product product =
       widget.editingProduct != null ? widget.editingProduct!.clone() : Product();
 
-  static const List<String> _categories = [
+  late final TextEditingController _categoryController =
+      TextEditingController(text: product.category);
+
+  static const List<String> _defaultCategories = [
     'Roupas',
     'Calçados',
     'Acessórios',
+    'Anéis',
     'Eletrônicos',
     'Outros',
   ];
+
+  @override
+  void dispose() {
+    _categoryController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -78,23 +88,45 @@ class _EditProductScreenState extends State<EditProductScreen> {
                     },
                     onSaved: (value) => product.name = value ?? '',
                   ),
-                  DropdownButtonFormField<String>(
-                    initialValue: _categories.contains(product.category)
-                        ? product.category
-                        : 'Outros',
+                  TextFormField(
+                    controller: _categoryController,
                     decoration: const InputDecoration(
                       labelText: 'Categoria',
+                      helperText:
+                          'Escolha uma sugestão ou digite uma nova (ex: Anéis)',
                       isDense: true,
                     ),
-                    items: _categories
-                        .map((c) => DropdownMenuItem(
-                              value: c,
-                              child: Text(c),
-                            ))
-                        .toList(),
-                    onChanged: (value) => product.category = value ?? 'Outros',
-                    onSaved: (value) => product.category = value ?? 'Outros',
+                    validator: (v) => (v == null || v.trim().isEmpty)
+                        ? 'Informe a categoria'
+                        : null,
+                    onSaved: (v) =>
+                        product.category = (v ?? '').trim().isEmpty
+                            ? 'Outros'
+                            : v!.trim(),
                   ),
+                  Builder(builder: (context) {
+                    // Sugestões: categorias padrão + as já usadas em produtos.
+                    final existing =
+                        context.read<ProductManager>().categories;
+                    final suggestions = <String>{
+                      ..._defaultCategories,
+                      ...existing,
+                    }.toList();
+                    return Padding(
+                      padding: const EdgeInsets.only(top: 8),
+                      child: Wrap(
+                        spacing: 6,
+                        children: suggestions.map((c) {
+                          return ActionChip(
+                            label: Text(c),
+                            visualDensity: VisualDensity.compact,
+                            onPressed: () => setState(
+                                () => _categoryController.text = c),
+                          );
+                        }).toList(),
+                      ),
+                    );
+                  }),
                   const Padding(
                     padding: EdgeInsets.only(top: 16, bottom: 8),
                     child: Text(
