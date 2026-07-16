@@ -103,36 +103,61 @@ class _AddressScreenState extends State<AddressScreen> {
                     style: TextStyle(
                         fontWeight: FontWeight.w600, fontSize: 16),
                   ),
-                  TextFormField(
-                    controller: _cepController,
-                    decoration: InputDecoration(
-                      isDense: true,
-                      labelText: 'CEP',
-                      hintText: '00000-000',
-                      errorText: _cepError,
-                    ),
-                    keyboardType: TextInputType.number,
+                  const SizedBox(height: 12),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      Expanded(
+                        child: TextFormField(
+                          controller: _cepController,
+                          decoration: InputDecoration(
+                            isDense: true,
+                            labelText: 'CEP',
+                            hintText: '00000-000',
+                            errorText: _cepError,
+                            border: const OutlineInputBorder(),
+                          ),
+                          keyboardType: TextInputType.number,
+                          onFieldSubmitted: (_) => _searchCep(cartManager),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      SizedBox(
+                        height: 48,
+                        child: ElevatedButton.icon(
+                          onPressed: _loadingCep
+                              ? null
+                              : () => _searchCep(cartManager),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Theme.of(context).primaryColor,
+                            foregroundColor: Colors.white,
+                          ),
+                          icon: _loadingCep
+                              ? const SizedBox(
+                                  height: 16,
+                                  width: 16,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    valueColor: AlwaysStoppedAnimation(
+                                        Colors.white),
+                                  ),
+                                )
+                              : const Icon(Icons.search, size: 18),
+                          label: const Text('Buscar'),
+                        ),
+                      ),
+                    ],
                   ),
-                  ElevatedButton(
-                    onPressed:
-                        _loadingCep ? null : () => _searchCep(cartManager),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Theme.of(context).primaryColor,
-                      foregroundColor: Colors.white,
+                  if (address != null) ...[
+                    const SizedBox(height: 16),
+                    _AddressForm(
+                      address,
+                      _formKey,
+                      // Recria os campos quando um novo CEP é buscado,
+                      // reaplicando rua/bairro/cidade/UF preenchidos.
+                      key: ValueKey('cep_${address.zipCode}'),
                     ),
-                    child: _loadingCep
-                        ? const SizedBox(
-                            height: 18,
-                            width: 18,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              valueColor:
-                                  AlwaysStoppedAnimation(Colors.white),
-                            ),
-                          )
-                        : const Text('Buscar CEP'),
-                  ),
-                  if (address != null) _AddressForm(address, _formKey),
+                  ],
                 ],
               ),
             ),
@@ -155,7 +180,7 @@ class _AddressScreenState extends State<AddressScreen> {
 }
 
 class _AddressForm extends StatelessWidget {
-  const _AddressForm(this.address, this.formKey);
+  const _AddressForm(this.address, this.formKey, {super.key});
 
   final Address address;
   final GlobalKey<FormState> formKey;
@@ -165,65 +190,65 @@ class _AddressForm extends StatelessWidget {
     String? req(String? v) =>
         (v == null || v.trim().isEmpty) ? 'Obrigatório' : null;
 
+    const gap = SizedBox(height: 12);
+    const dec = InputDecoration(isDense: true, border: OutlineInputBorder());
+
     return Form(
       key: formKey,
       child: Column(
         children: <Widget>[
           TextFormField(
             initialValue: address.street,
-            decoration: const InputDecoration(
-                isDense: true, labelText: 'Rua/Avenida'),
+            decoration: dec.copyWith(labelText: 'Rua/Avenida'),
             validator: req,
             onSaved: (v) => address.street = v ?? '',
           ),
+          gap,
           Row(
             children: <Widget>[
               Expanded(
                 child: TextFormField(
                   initialValue: address.number,
-                  decoration: const InputDecoration(
-                      isDense: true, labelText: 'Número'),
+                  decoration: dec.copyWith(labelText: 'Número'),
                   keyboardType: TextInputType.number,
                   validator: req,
                   onSaved: (v) => address.number = v ?? '',
                 ),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 10),
               Expanded(
                 child: TextFormField(
                   initialValue: address.complement,
-                  decoration: const InputDecoration(
-                      isDense: true, labelText: 'Complemento'),
+                  decoration: dec.copyWith(labelText: 'Complemento'),
                   onSaved: (v) => address.complement = v ?? '',
                 ),
               ),
             ],
           ),
+          gap,
           TextFormField(
             initialValue: address.district,
-            decoration: const InputDecoration(
-                isDense: true, labelText: 'Bairro'),
+            decoration: dec.copyWith(labelText: 'Bairro'),
             validator: req,
             onSaved: (v) => address.district = v ?? '',
           ),
+          gap,
           Row(
             children: <Widget>[
               Expanded(
                 flex: 3,
                 child: TextFormField(
                   initialValue: address.city,
-                  decoration: const InputDecoration(
-                      isDense: true, labelText: 'Cidade'),
+                  decoration: dec.copyWith(labelText: 'Cidade'),
                   validator: req,
                   onSaved: (v) => address.city = v ?? '',
                 ),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 10),
               Expanded(
                 child: TextFormField(
                   initialValue: address.state,
-                  decoration: const InputDecoration(
-                      isDense: true, labelText: 'UF'),
+                  decoration: dec.copyWith(labelText: 'UF', counterText: ''),
                   maxLength: 2,
                   validator: req,
                   onSaved: (v) => address.state = v ?? '',

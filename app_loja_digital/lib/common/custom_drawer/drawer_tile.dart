@@ -26,9 +26,18 @@ class DrawerTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final int currentPage = context.watch<PageManager>().currentPage;
     final theme = context.watch<ThemeManager>();
-    final bool selected = page != null && currentPage == page;
-    // Cor automática: sempre contrasta com o fundo do menu.
-    final Color color = selected ? theme.menuAccent : theme.onMenu;
+
+    // A tela atual: se for rota empilhada (ex: /favorites), o nome bate com
+    // 'route'; se estivermos na BaseScreen, vale a aba (page) atual.
+    final String? routeName = ModalRoute.of(context)?.settings.name;
+    final bool onBase =
+        routeName == null || routeName == '/' || routeName == '/base';
+    final bool selected = route != null
+        ? routeName == route
+        : (onBase && currentPage == page);
+
+    final Color accent = theme.menuAccent;
+    final Color color = selected ? accent : theme.onMenu;
 
     return InkWell(
       onTap: () {
@@ -42,17 +51,28 @@ class DrawerTile extends StatelessWidget {
           pageManager.setPage(page!);
         }
       },
-      child: SizedBox(
+      child: Container(
         height: 60,
+        decoration: selected
+            ? BoxDecoration(
+                color: accent.withAlpha(28),
+                border: Border(left: BorderSide(color: accent, width: 4)),
+              )
+            : null,
         child: Row(
           children: <Widget>[
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 32),
+              padding: EdgeInsets.only(
+                  left: selected ? 28 : 32, right: 32),
               child: Icon(iconData, size: 32, color: color),
             ),
             Text(
               title,
-              style: TextStyle(fontSize: 16, color: color),
+              style: TextStyle(
+                fontSize: 16,
+                color: color,
+                fontWeight: selected ? FontWeight.bold : FontWeight.normal,
+              ),
             )
           ],
         ),
