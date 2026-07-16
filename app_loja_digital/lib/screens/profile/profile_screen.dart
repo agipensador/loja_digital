@@ -11,7 +11,7 @@ class ProfileScreen extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: AppBar(title: const Text('Meu perfil'), centerTitle: true),
+      appBar: AppBar(title: const Text('Perfil'), centerTitle: true),
       body: Consumer<UserManager>(
         builder: (_, userManager, __) {
           if (!userManager.isLoggedIn) {

@@ -14,7 +14,7 @@ class ThemeManager extends ChangeNotifier {
   // Paleta padrão da loja (usada até o admin personalizar).
   String storeName = 'Loja Digital';
   Color primary = const Color(0xFF047D8D);
-  Color background = const Color(0xFFB98A82);
+  Color background = const Color(0xFFD9C7B3); // marrom clarinho
   Color menu = const Color(0xFF047D8D); // menu combina com a cor principal
 
   /// Últimas cores usadas pelo admin (máx. 4).

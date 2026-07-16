@@ -33,7 +33,7 @@ class CustomDrawer extends StatelessWidget {
                       route: '/favorites'),
                   const DrawerTile(
                       iconData: Icons.person,
-                      title: 'Meu perfil',
+                      title: 'Perfil',
                       route: '/profile'),
                   const DrawerTile(
                       iconData: Icons.playlist_add_check,
