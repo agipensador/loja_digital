@@ -16,35 +16,49 @@ class EditAddressScreen extends StatefulWidget {
 
 class _EditAddressScreenState extends State<EditAddressScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _cep = TextEditingController();
   final _cepService = CepService();
 
-  late Address _address =
-      widget.editing?.address ?? Address();
-  late String _titleOption; // 'Casa' | 'Trabalho' | 'Outro'
-  late final TextEditingController _customTitle;
+  final _cep = TextEditingController();
+  final _street = TextEditingController();
+  final _number = TextEditingController();
+  final _complement = TextEditingController();
+  final _district = TextEditingController();
+  final _city = TextEditingController();
+  final _state = TextEditingController();
+  final _customTitle = TextEditingController();
 
+  late String _titleOption; // 'Casa' | 'Trabalho' | 'Outro'
   bool _cepLoading = false;
   String? _cepError;
 
   @override
   void initState() {
     super.initState();
+    final a = widget.editing?.address;
+    if (a != null) {
+      _cep.text = a.zipCode;
+      _street.text = a.street;
+      _number.text = a.number;
+      _complement.text = a.complement;
+      _district.text = a.district;
+      _city.text = a.city;
+      _state.text = a.state;
+    }
     final t = widget.editing?.title ?? 'Casa';
     if (AddressManager.fixedTitles.contains(t)) {
       _titleOption = t;
-      _customTitle = TextEditingController();
     } else {
       _titleOption = 'Outro';
-      _customTitle = TextEditingController(text: t);
+      _customTitle.text = t;
     }
-    _cep.text = _address.zipCode;
   }
 
   @override
   void dispose() {
-    _cep.dispose();
-    _customTitle.dispose();
+    for (final c in [_cep, _street, _number, _complement, _district, _city,
+        _state, _customTitle]) {
+      c.dispose();
+    }
     super.dispose();
   }
 
@@ -55,16 +69,15 @@ class _EditAddressScreenState extends State<EditAddressScreen> {
     });
     try {
       final found = await _cepService.getAddressFromCep(_cep.text);
-      setState(() {
-        // mantém número/complemento já digitados
-        found.number = _address.number;
-        found.complement = _address.complement;
-        _address = found;
-      });
+      _street.text = found.street;
+      _district.text = found.district;
+      _city.text = found.city;
+      _state.text = found.state;
+      setState(() {});
     } on CepAbertoException catch (e) {
       setState(() => _cepError = e.message);
     } catch (_) {
-      setState(() => _cepError = 'Erro ao buscar CEP');
+      setState(() => _cepError = 'Não foi possível buscar. Preencha à mão.');
     } finally {
       if (mounted) setState(() => _cepLoading = false);
     }
@@ -72,13 +85,20 @@ class _EditAddressScreenState extends State<EditAddressScreen> {
 
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
-    _formKey.currentState!.save();
     final title =
         _titleOption == 'Outro' ? _customTitle.text.trim() : _titleOption;
     final saved = SavedAddress(
       id: widget.editing?.id,
       title: title.isEmpty ? 'Endereço' : title,
-      address: _address,
+      address: Address(
+        street: _street.text.trim(),
+        number: _number.text.trim(),
+        complement: _complement.text.trim(),
+        district: _district.text.trim(),
+        city: _city.text.trim(),
+        state: _state.text.trim(),
+        zipCode: _cep.text.trim(),
+      ),
     );
     await context.read<AddressManager>().save(saved);
     if (mounted) Navigator.of(context).pop();
@@ -89,11 +109,14 @@ class _EditAddressScreenState extends State<EditAddressScreen> {
     final primaryColor = Theme.of(context).primaryColor;
     String? req(String? v) =>
         (v == null || v.trim().isEmpty) ? 'Obrigatório' : null;
+    const gap = SizedBox(height: 12);
+    const dec = InputDecoration(isDense: true, border: OutlineInputBorder());
 
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: Text(widget.editing == null ? 'Novo endereço' : 'Editar endereço'),
+        title:
+            Text(widget.editing == null ? 'Novo endereço' : 'Editar endereço'),
         centerTitle: true,
       ),
       body: Form(
@@ -113,13 +136,15 @@ class _EditAddressScreenState extends State<EditAddressScreen> {
                 );
               }).toList(),
             ),
-            if (_titleOption == 'Outro')
+            if (_titleOption == 'Outro') ...[
+              gap,
               TextFormField(
                 controller: _customTitle,
-                decoration: const InputDecoration(
+                decoration: dec.copyWith(
                     labelText: 'Nome do local', hintText: 'Ex: Casa da mãe'),
                 validator: (v) => _titleOption == 'Outro' ? req(v) : null,
               ),
+            ],
             const SizedBox(height: 16),
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -127,92 +152,91 @@ class _EditAddressScreenState extends State<EditAddressScreen> {
                 Expanded(
                   child: TextFormField(
                     controller: _cep,
-                    decoration: InputDecoration(
-                        labelText: 'CEP', errorText: _cepError),
+                    decoration:
+                        dec.copyWith(labelText: 'CEP', errorText: _cepError),
                     keyboardType: TextInputType.number,
+                    onFieldSubmitted: (_) => _searchCep(),
                   ),
                 ),
-                const SizedBox(width: 8),
-                ElevatedButton(
-                  onPressed: _cepLoading ? null : _searchCep,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: primaryColor,
-                    foregroundColor: Colors.white,
+                const SizedBox(width: 10),
+                SizedBox(
+                  height: 48,
+                  child: ElevatedButton.icon(
+                    onPressed: _cepLoading ? null : _searchCep,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: primaryColor,
+                      foregroundColor: Colors.white,
+                    ),
+                    icon: _cepLoading
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor:
+                                    AlwaysStoppedAnimation(Colors.white)))
+                        : const Icon(Icons.search, size: 18),
+                    label: const Text('Buscar'),
                   ),
-                  child: _cepLoading
-                      ? const SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              valueColor:
-                                  AlwaysStoppedAnimation(Colors.white)))
-                      : const Text('Buscar'),
                 ),
               ],
             ),
+            gap,
             TextFormField(
-              key: ValueKey('street${_address.street}'),
-              initialValue: _address.street,
-              decoration: const InputDecoration(labelText: 'Rua/Avenida'),
+              controller: _street,
+              decoration: dec.copyWith(labelText: 'Rua/Avenida'),
               validator: req,
-              onSaved: (v) => _address.street = v ?? '',
             ),
+            gap,
             Row(
               children: <Widget>[
                 Expanded(
                   child: TextFormField(
-                    initialValue: _address.number,
-                    decoration: const InputDecoration(labelText: 'Número'),
+                    controller: _number,
+                    decoration: dec.copyWith(labelText: 'Número'),
                     keyboardType: TextInputType.number,
                     validator: req,
-                    onSaved: (v) => _address.number = v ?? '',
                   ),
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: 10),
                 Expanded(
                   child: TextFormField(
-                    initialValue: _address.complement,
-                    decoration:
-                        const InputDecoration(labelText: 'Complemento'),
-                    onSaved: (v) => _address.complement = v ?? '',
+                    controller: _complement,
+                    decoration: dec.copyWith(labelText: 'Complemento'),
                   ),
                 ),
               ],
             ),
+            gap,
             TextFormField(
-              key: ValueKey('district${_address.district}'),
-              initialValue: _address.district,
-              decoration: const InputDecoration(labelText: 'Bairro'),
+              controller: _district,
+              decoration: dec.copyWith(labelText: 'Bairro'),
               validator: req,
-              onSaved: (v) => _address.district = v ?? '',
             ),
+            gap,
             Row(
               children: <Widget>[
                 Expanded(
                   flex: 3,
                   child: TextFormField(
-                    key: ValueKey('city${_address.city}'),
-                    initialValue: _address.city,
-                    decoration: const InputDecoration(labelText: 'Cidade'),
+                    controller: _city,
+                    decoration: dec.copyWith(labelText: 'Cidade'),
                     validator: req,
-                    onSaved: (v) => _address.city = v ?? '',
                   ),
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: 10),
                 Expanded(
                   child: TextFormField(
-                    key: ValueKey('state${_address.state}'),
-                    initialValue: _address.state,
-                    decoration: const InputDecoration(labelText: 'UF'),
+                    controller: _state,
+                    decoration:
+                        dec.copyWith(labelText: 'UF', counterText: ''),
                     maxLength: 2,
                     validator: req,
-                    onSaved: (v) => _address.state = v ?? '',
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 20),
             SizedBox(
               height: 44,
               child: ElevatedButton(
@@ -220,11 +244,7 @@ class _EditAddressScreenState extends State<EditAddressScreen> {
                   backgroundColor: primaryColor,
                   foregroundColor: Colors.white,
                 ),
-                onPressed: () {
-                  // grava CEP digitado no endereço
-                  _address.zipCode = _cep.text;
-                  _save();
-                },
+                onPressed: _save,
                 child: const Text('Salvar endereço',
                     style: TextStyle(fontSize: 18)),
               ),

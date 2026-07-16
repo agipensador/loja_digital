@@ -2,6 +2,7 @@ import 'package:app_loja_digital/common/price_card.dart';
 import 'package:app_loja_digital/models/address.dart';
 import 'package:app_loja_digital/models/address_manager.dart';
 import 'package:app_loja_digital/models/cart_manager.dart';
+import 'package:app_loja_digital/models/saved_address.dart';
 import 'package:app_loja_digital/services/cep_service.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -14,46 +15,92 @@ class AddressScreen extends StatefulWidget {
 }
 
 class _AddressScreenState extends State<AddressScreen> {
-  final _cepController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
+  final _cepService = CepService();
+
+  final _cep = TextEditingController();
+  final _street = TextEditingController();
+  final _number = TextEditingController();
+  final _complement = TextEditingController();
+  final _district = TextEditingController();
+  final _city = TextEditingController();
+  final _state = TextEditingController();
 
   bool _loadingCep = false;
   String? _cepError;
 
   @override
   void dispose() {
-    _cepController.dispose();
+    for (final c in [_cep, _street, _number, _complement, _district, _city,
+        _state]) {
+      c.dispose();
+    }
     super.dispose();
   }
 
-  Future<void> _searchCep(CartManager cartManager) async {
+  void _fill(Address a) {
+    _cep.text = a.zipCode;
+    _street.text = a.street;
+    _number.text = a.number;
+    _complement.text = a.complement;
+    _district.text = a.district;
+    _city.text = a.city;
+    _state.text = a.state;
+  }
+
+  Address _current() => Address(
+        street: _street.text.trim(),
+        number: _number.text.trim(),
+        complement: _complement.text.trim(),
+        district: _district.text.trim(),
+        city: _city.text.trim(),
+        state: _state.text.trim(),
+        zipCode: _cep.text.trim(),
+      );
+
+  Future<void> _searchCep() async {
     setState(() {
       _loadingCep = true;
       _cepError = null;
     });
     try {
-      await cartManager.getAddress(_cepController.text);
+      final found = await _cepService.getAddressFromCep(_cep.text);
+      // Preenche o que o CEP retornou; número/complemento seguem manuais.
+      _street.text = found.street;
+      _district.text = found.district;
+      _city.text = found.city;
+      _state.text = found.state;
+      setState(() {});
     } on CepAbertoException catch (e) {
+      // CEP não encontrado: apenas informa e deixa preencher à mão.
       setState(() => _cepError = e.message);
-    } catch (e) {
-      setState(() => _cepError = 'Erro ao buscar CEP');
+    } catch (_) {
+      setState(() => _cepError = 'Não foi possível buscar. Preencha à mão.');
     } finally {
       if (mounted) setState(() => _loadingCep = false);
     }
   }
 
+  void _continue(CartManager cartManager) {
+    if (!_formKey.currentState!.validate()) return;
+    cartManager.setAddress(_current());
+    Navigator.of(context).pushNamed('/checkout');
+  }
+
   @override
   Widget build(BuildContext context) {
     final cartManager = context.watch<CartManager>();
-    final Address? address = cartManager.address;
+    final primaryColor = Theme.of(context).primaryColor;
+    String? req(String? v) =>
+        (v == null || v.trim().isEmpty) ? 'Obrigatório' : null;
+    const gap = SizedBox(height: 12);
+    const dec = InputDecoration(isDense: true, border: OutlineInputBorder());
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Entrega'),
-        centerTitle: true,
-      ),
+      appBar: AppBar(title: const Text('Entrega'), centerTitle: true),
       body: ListView(
         children: <Widget>[
+          // Endereços salvos (toque para reutilizar)
           Consumer<AddressManager>(
             builder: (_, addressManager, __) {
               if (addressManager.addresses.isEmpty) {
@@ -71,14 +118,14 @@ class _AddressScreenState extends State<AddressScreen> {
                           style: TextStyle(
                               fontWeight: FontWeight.w600, fontSize: 16)),
                     ),
-                    for (final saved in addressManager.addresses)
+                    for (final SavedAddress saved in addressManager.addresses)
                       RadioListTile<String>(
                         value: saved.id!,
                         groupValue: addressManager.selectedId,
                         onChanged: (v) {
                           addressManager.select(v!);
-                          cartManager.setAddress(saved.address);
-                          _cepController.text = saved.address.zipCode;
+                          _fill(saved.address);
+                          setState(() {});
                         },
                         title: Text(saved.title,
                             style: const TextStyle(
@@ -95,166 +142,119 @@ class _AddressScreenState extends State<AddressScreen> {
             margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             child: Padding(
               padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: <Widget>[
-                  const Text(
-                    'Ou informe outro endereço',
-                    style: TextStyle(
-                        fontWeight: FontWeight.w600, fontSize: 16),
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: <Widget>[
-                      Expanded(
-                        child: TextFormField(
-                          controller: _cepController,
-                          decoration: InputDecoration(
-                            isDense: true,
-                            labelText: 'CEP',
-                            hintText: '00000-000',
-                            errorText: _cepError,
-                            border: const OutlineInputBorder(),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: <Widget>[
+                    const Text('Endereço de entrega',
+                        style: TextStyle(
+                            fontWeight: FontWeight.w600, fontSize: 16)),
+                    const SizedBox(height: 12),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: <Widget>[
+                        Expanded(
+                          child: TextFormField(
+                            controller: _cep,
+                            decoration: dec.copyWith(
+                              labelText: 'CEP',
+                              hintText: '00000-000',
+                              errorText: _cepError,
+                            ),
+                            keyboardType: TextInputType.number,
+                            onFieldSubmitted: (_) => _searchCep(),
                           ),
-                          keyboardType: TextInputType.number,
-                          onFieldSubmitted: (_) => _searchCep(cartManager),
                         ),
-                      ),
-                      const SizedBox(width: 10),
-                      SizedBox(
-                        height: 48,
-                        child: ElevatedButton.icon(
-                          onPressed: _loadingCep
-                              ? null
-                              : () => _searchCep(cartManager),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Theme.of(context).primaryColor,
-                            foregroundColor: Colors.white,
+                        const SizedBox(width: 10),
+                        SizedBox(
+                          height: 48,
+                          child: ElevatedButton.icon(
+                            onPressed: _loadingCep ? null : _searchCep,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: primaryColor,
+                              foregroundColor: Colors.white,
+                            ),
+                            icon: _loadingCep
+                                ? const SizedBox(
+                                    height: 16,
+                                    width: 16,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      valueColor: AlwaysStoppedAnimation(
+                                          Colors.white),
+                                    ),
+                                  )
+                                : const Icon(Icons.search, size: 18),
+                            label: const Text('Buscar'),
                           ),
-                          icon: _loadingCep
-                              ? const SizedBox(
-                                  height: 16,
-                                  width: 16,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    valueColor: AlwaysStoppedAnimation(
-                                        Colors.white),
-                                  ),
-                                )
-                              : const Icon(Icons.search, size: 18),
-                          label: const Text('Buscar'),
                         ),
-                      ),
-                    ],
-                  ),
-                  if (address != null) ...[
-                    const SizedBox(height: 16),
-                    _AddressForm(
-                      address,
-                      _formKey,
-                      // Recria os campos quando um novo CEP é buscado,
-                      // reaplicando rua/bairro/cidade/UF preenchidos.
-                      key: ValueKey('cep_${address.zipCode}'),
+                      ],
+                    ),
+                    gap,
+                    TextFormField(
+                      controller: _street,
+                      decoration: dec.copyWith(labelText: 'Rua/Avenida'),
+                      validator: req,
+                    ),
+                    gap,
+                    Row(
+                      children: <Widget>[
+                        Expanded(
+                          child: TextFormField(
+                            controller: _number,
+                            decoration: dec.copyWith(labelText: 'Número'),
+                            keyboardType: TextInputType.number,
+                            validator: req,
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: TextFormField(
+                            controller: _complement,
+                            decoration:
+                                dec.copyWith(labelText: 'Complemento'),
+                          ),
+                        ),
+                      ],
+                    ),
+                    gap,
+                    TextFormField(
+                      controller: _district,
+                      decoration: dec.copyWith(labelText: 'Bairro'),
+                      validator: req,
+                    ),
+                    gap,
+                    Row(
+                      children: <Widget>[
+                        Expanded(
+                          flex: 3,
+                          child: TextFormField(
+                            controller: _city,
+                            decoration: dec.copyWith(labelText: 'Cidade'),
+                            validator: req,
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: TextFormField(
+                            controller: _state,
+                            decoration: dec.copyWith(
+                                labelText: 'UF', counterText: ''),
+                            maxLength: 2,
+                            validator: req,
+                          ),
+                        ),
+                      ],
                     ),
                   ],
-                ],
+                ),
               ),
             ),
           ),
-          if (address != null)
-            PriceCard(
-              buttonText: 'Continuar para o Pagamento',
-              onPressed: () {
-                if (_formKey.currentState!.validate()) {
-                  _formKey.currentState!.save();
-                  cartManager.setAddress(address);
-                  Navigator.of(context).pushNamed('/checkout');
-                }
-              },
-            ),
-        ],
-      ),
-    );
-  }
-}
-
-class _AddressForm extends StatelessWidget {
-  const _AddressForm(this.address, this.formKey, {super.key});
-
-  final Address address;
-  final GlobalKey<FormState> formKey;
-
-  @override
-  Widget build(BuildContext context) {
-    String? req(String? v) =>
-        (v == null || v.trim().isEmpty) ? 'Obrigatório' : null;
-
-    const gap = SizedBox(height: 12);
-    const dec = InputDecoration(isDense: true, border: OutlineInputBorder());
-
-    return Form(
-      key: formKey,
-      child: Column(
-        children: <Widget>[
-          TextFormField(
-            initialValue: address.street,
-            decoration: dec.copyWith(labelText: 'Rua/Avenida'),
-            validator: req,
-            onSaved: (v) => address.street = v ?? '',
-          ),
-          gap,
-          Row(
-            children: <Widget>[
-              Expanded(
-                child: TextFormField(
-                  initialValue: address.number,
-                  decoration: dec.copyWith(labelText: 'Número'),
-                  keyboardType: TextInputType.number,
-                  validator: req,
-                  onSaved: (v) => address.number = v ?? '',
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: TextFormField(
-                  initialValue: address.complement,
-                  decoration: dec.copyWith(labelText: 'Complemento'),
-                  onSaved: (v) => address.complement = v ?? '',
-                ),
-              ),
-            ],
-          ),
-          gap,
-          TextFormField(
-            initialValue: address.district,
-            decoration: dec.copyWith(labelText: 'Bairro'),
-            validator: req,
-            onSaved: (v) => address.district = v ?? '',
-          ),
-          gap,
-          Row(
-            children: <Widget>[
-              Expanded(
-                flex: 3,
-                child: TextFormField(
-                  initialValue: address.city,
-                  decoration: dec.copyWith(labelText: 'Cidade'),
-                  validator: req,
-                  onSaved: (v) => address.city = v ?? '',
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: TextFormField(
-                  initialValue: address.state,
-                  decoration: dec.copyWith(labelText: 'UF', counterText: ''),
-                  maxLength: 2,
-                  validator: req,
-                  onSaved: (v) => address.state = v ?? '',
-                ),
-              ),
-            ],
+          PriceCard(
+            buttonText: 'Continuar para o Pagamento',
+            onPressed: () => _continue(cartManager),
           ),
         ],
       ),
