@@ -1,5 +1,7 @@
+import 'package:app_loja_digital/common/nav_pages.dart';
 import 'package:app_loja_digital/common/price_card.dart';
 import 'package:app_loja_digital/models/cart_manager.dart';
+import 'package:app_loja_digital/models/page_manager.dart';
 import 'package:app_loja_digital/screens/cart/components/cart_tile.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -48,8 +50,14 @@ class CartScreen extends StatelessWidget {
                       ),
                       icon: const Icon(Icons.favorite),
                       label: const Text('Ver meus favoritos'),
-                      onPressed: () =>
-                          Navigator.of(context).pushNamed('/favorites'),
+                      onPressed: () {
+                        // Volta à base e abre a página de Favoritos (menu).
+                        context
+                            .read<PageManager>()
+                            .setPage(NavPages.favoritos);
+                        Navigator.of(context)
+                            .popUntil((r) => r.isFirst);
+                      },
                     ),
                   ],
                 ),

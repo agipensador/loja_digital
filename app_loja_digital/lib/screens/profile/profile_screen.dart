@@ -1,3 +1,4 @@
+import 'package:app_loja_digital/common/custom_drawer/custom_drawer.dart';
 import 'package:app_loja_digital/models/user_manager.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -10,6 +11,7 @@ class ProfileScreen extends StatelessWidget {
     final primaryColor = Theme.of(context).primaryColor;
 
     return Scaffold(
+      drawer: const CustomDrawer(),
       backgroundColor: Colors.white,
       appBar: AppBar(title: const Text('Perfil'), centerTitle: true),
       body: Consumer<UserManager>(
@@ -87,12 +89,6 @@ class ProfileScreen extends StatelessWidget {
                 trailing: const Icon(Icons.chevron_right),
                 onTap: () =>
                     Navigator.of(context).pushNamed('/payment_methods'),
-              ),
-              ListTile(
-                leading: Icon(Icons.favorite, color: primaryColor),
-                title: const Text('Favoritos'),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () => Navigator.of(context).pushNamed('/favorites'),
               ),
               if (userManager.adminEnabled) ...[
                 const Divider(),

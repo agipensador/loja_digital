@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:app_loja_digital/common/custom_drawer/drawer_tile.dart';
 import 'package:app_loja_digital/common/custom_drawer/custom_drawer_header.dart';
+import 'package:app_loja_digital/common/nav_pages.dart';
 import 'package:app_loja_digital/models/theme_manager.dart';
 import 'package:app_loja_digital/models/user_manager.dart';
 
@@ -24,29 +25,35 @@ class CustomDrawer extends StatelessWidget {
                   const CustomDrawerHeader(),
                   const Divider(),
                   const DrawerTile(
-                      iconData: Icons.home, title: 'Início', page: 0),
+                      iconData: Icons.home,
+                      title: 'Início',
+                      page: NavPages.inicio),
                   const DrawerTile(
-                      iconData: Icons.list, title: 'Produtos', page: 1),
+                      iconData: Icons.list,
+                      title: 'Produtos',
+                      page: NavPages.produtos),
                   const DrawerTile(
                       iconData: Icons.favorite,
                       title: 'Favoritos',
-                      route: '/favorites'),
+                      page: NavPages.favoritos),
                   const DrawerTile(
                       iconData: Icons.person,
                       title: 'Perfil',
-                      route: '/profile'),
+                      page: NavPages.perfil),
                   const DrawerTile(
                       iconData: Icons.playlist_add_check,
                       title: 'Meus Pedidos',
-                      page: 2),
+                      page: NavPages.pedidos),
                   const DrawerTile(
-                      iconData: Icons.location_on, title: 'Lojas', page: 3),
+                      iconData: Icons.location_on,
+                      title: 'Lojas',
+                      page: NavPages.lojas),
                   if (userManager.adminEnabled) ...const <Widget>[
                     Divider(),
                     DrawerTile(
                         iconData: Icons.settings,
                         title: 'Pedidos',
-                        page: 4),
+                        page: NavPages.adminPedidos),
                   ],
                 ],
               );
