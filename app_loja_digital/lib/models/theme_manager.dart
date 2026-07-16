@@ -15,7 +15,6 @@ class ThemeManager extends ChangeNotifier {
   Color primary = const Color(0xFF047D8D);
   Color background = const Color(0xFFB98A82);
   Color menu = const Color(0xFFCBECF1);
-  Color menuText = const Color(0xFF616161);
 
   /// Últimas cores usadas pelo admin (máx. 4).
   List<Color> recentColors = [];
@@ -32,7 +31,6 @@ class ThemeManager extends ChangeNotifier {
         primary = _color(data['primary'], primary);
         background = _color(data['background'], background);
         menu = _color(data['menu'], menu);
-        menuText = _color(data['menuText'], menuText);
         final recent = data['recentColors'];
         if (recent is List) {
           recentColors =
@@ -69,11 +67,6 @@ class ThemeManager extends ChangeNotifier {
     notifyListeners();
   }
 
-  void setMenuText(Color c) {
-    menuText = c;
-    notifyListeners();
-  }
-
   /// Registra uma cor como "usada recentemente" (dedup, máx. 4) e persiste.
   void pushRecent(Color c) {
     recentColors.removeWhere((x) => x.toARGB32() == c.toARGB32());
@@ -94,16 +87,23 @@ class ThemeManager extends ChangeNotifier {
       'primary': primary.toARGB32(),
       'background': background.toARGB32(),
       'menu': menu.toARGB32(),
-      'menuText': menuText.toARGB32(),
       'recentColors': recentColors.map((c) => c.toARGB32()).toList(),
     });
   }
 
   Future<void> discard() => _load();
 
-  /// Cor de texto/ícone legível sobre uma cor de fundo.
+  /// Cor de texto/ícone legível sobre uma cor de fundo (preto/branco).
   static Color onColor(Color c) =>
-      c.computeLuminance() > 0.5 ? Colors.black87 : Colors.white;
+      c.computeLuminance() > 0.5 ? Colors.black : Colors.white;
 
+  /// Cor do texto do menu — automática, sempre contrastando com o fundo.
   Color get onMenu => onColor(menu);
+
+  /// Cor de destaque do menu (item selecionado / "Sair"): usa a cor
+  /// principal se ela contrastar com o menu; senão, a cor de contraste.
+  Color get menuAccent {
+    final diff = (primary.computeLuminance() - menu.computeLuminance()).abs();
+    return diff > 0.25 ? primary : onMenu;
+  }
 }

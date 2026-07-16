@@ -68,12 +68,13 @@ class AppearanceScreen extends StatelessWidget {
                 onChange: theme.setMenu,
                 onCommit: theme.pushRecent,
               ),
-              _ColorRow(
-                label: 'Cor das letras do menu',
-                current: theme.menuText,
-                recents: theme.recentColors,
-                onChange: theme.setMenuText,
-                onCommit: theme.pushRecent,
+              const Padding(
+                padding: EdgeInsets.only(bottom: 16),
+                child: Text(
+                  'As letras do menu são automáticas — sempre contrastam com '
+                  'a cor do menu (preto ou branco).',
+                  style: TextStyle(fontSize: 12, color: Colors.grey),
+                ),
               ),
 
               const SizedBox(height: 24),

@@ -9,7 +9,7 @@ class CustomDrawerHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = context.watch<ThemeManager>();
-    final Color onMenu = theme.menuText;
+    final Color onMenu = theme.onMenu;
     return Container(
       padding: const EdgeInsets.fromLTRB(32, 24, 16, 8),
       height: 180,
@@ -50,7 +50,7 @@ class CustomDrawerHeader extends StatelessWidget {
                       ? 'Sair'
                       : 'Entrar ou cadastre-se >',
                   style: TextStyle(
-                    color: Theme.of(context).primaryColor,
+                    color: theme.menuAccent,
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
                   ),
