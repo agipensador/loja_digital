@@ -41,12 +41,15 @@ class DrawerTile extends StatelessWidget {
 
     return InkWell(
       onTap: () {
+        // Captura o Navigator ANTES de fechar a gaveta — depois do popUntil
+        // o contexto do item pode estar desativado (a gaveta fecha), o que
+        // impediria o push das rotas (ex: Favoritos/Perfil).
+        final navigator = Navigator.of(context);
         final pageManager = context.read<PageManager>();
-        // Fecha o drawer e volta para a BaseScreen, descartando qualquer
-        // rota empilhada, antes de navegar.
-        Navigator.of(context).popUntil((r) => r.isFirst);
+        // Fecha o drawer e descarta qualquer rota empilhada antes de navegar.
+        navigator.popUntil((r) => r.isFirst);
         if (route != null) {
-          Navigator.of(context).pushNamed(route!);
+          navigator.pushNamed(route!);
         } else {
           pageManager.setPage(page!);
         }
