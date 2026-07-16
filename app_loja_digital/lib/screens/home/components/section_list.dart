@@ -1,3 +1,4 @@
+import 'package:app_loja_digital/common/stock_badge.dart';
 import 'package:app_loja_digital/common/store_image.dart';
 import 'package:app_loja_digital/models/product_manager.dart';
 import 'package:app_loja_digital/models/section.dart';
@@ -18,24 +19,32 @@ class SectionList extends StatelessWidget {
         scrollDirection: Axis.horizontal,
         itemCount: section.items.length,
         separatorBuilder: (_, __) => const SizedBox(width: 4),
-        itemBuilder: (_, index) {
+        itemBuilder: (context, index) {
           final SectionItem item = section.items[index];
+          final product = item.product != null
+              ? context.watch<ProductManager>().findProductById(item.product!)
+              : null;
           return GestureDetector(
             onTap: () {
-              if (item.product != null) {
-                final product = context
-                    .read<ProductManager>()
-                    .findProductById(item.product!);
-                if (product != null) {
-                  Navigator.of(context)
-                      .pushNamed('/product', arguments: product);
-                }
+              if (product != null) {
+                Navigator.of(context)
+                    .pushNamed('/product', arguments: product);
               }
             },
             child: AspectRatio(
               aspectRatio: 1,
-              child: StoreImage(
-                item.image is String ? item.image as String : null,
+              child: Stack(
+                fit: StackFit.expand,
+                children: <Widget>[
+                  StoreImage(
+                    item.image is String ? item.image as String : null,
+                  ),
+                  Positioned(
+                    top: 4,
+                    left: 4,
+                    child: StockBadge(product),
+                  ),
+                ],
               ),
             ),
           );

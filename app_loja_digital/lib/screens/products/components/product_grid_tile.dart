@@ -1,3 +1,4 @@
+import 'package:app_loja_digital/common/stock_badge.dart';
 import 'package:app_loja_digital/common/store_image.dart';
 import 'package:app_loja_digital/models/product.dart';
 import 'package:flutter/material.dart';
@@ -28,19 +29,11 @@ class ProductGridTile extends StatelessWidget {
                   StoreImage(
                     product.images.isNotEmpty ? product.images.first : null,
                   ),
-                  if (product.isOutOfStock)
-                    Positioned(
-                      top: 6,
-                      left: 6,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 6, vertical: 2),
-                        color: Colors.red,
-                        child: const Text('Esgotado',
-                            style: TextStyle(
-                                color: Colors.white, fontSize: 10)),
-                      ),
-                    ),
+                  Positioned(
+                    top: 6,
+                    left: 6,
+                    child: StockBadge(product),
+                  ),
                 ],
               ),
             ),
