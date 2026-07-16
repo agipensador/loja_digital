@@ -1,4 +1,5 @@
 import 'package:app_loja_digital/common/custom_drawer/custom_drawer.dart';
+import 'package:app_loja_digital/common/message_text.dart';
 import 'package:app_loja_digital/models/orders_manager.dart';
 import 'package:app_loja_digital/models/user_manager.dart';
 import 'package:app_loja_digital/screens/orders/components/order_tile.dart';
@@ -20,16 +21,7 @@ class OrdersScreen extends StatelessWidget {
         centerTitle: true,
       ),
       body: !loggedIn
-          ? const Center(
-              child: Padding(
-                padding: EdgeInsets.all(24),
-                child: Text(
-                  'Entre para ver seus pedidos.',
-                  style: TextStyle(color: Colors.white, fontSize: 16),
-                  textAlign: TextAlign.center,
-                ),
-              ),
-            )
+          ? const MessageText('Entre para ver seus pedidos.')
           : Column(
               children: <Widget>[
                 const OrdersSearchField(),
@@ -38,14 +30,10 @@ class OrdersScreen extends StatelessWidget {
                     builder: (_, ordersManager, __) {
                       final orders = ordersManager.myOrders;
                       if (orders.isEmpty) {
-                        return Center(
-                          child: Text(
-                            ordersManager.search.isEmpty
-                                ? 'Nenhum pedido ainda :('
-                                : 'Nenhum pedido encontrado.',
-                            style: const TextStyle(
-                                color: Colors.white, fontSize: 16),
-                          ),
+                        return MessageText(
+                          ordersManager.search.isEmpty
+                              ? 'Nenhum pedido ainda :('
+                              : 'Nenhum pedido encontrado.',
                         );
                       }
                       return ListView.builder(

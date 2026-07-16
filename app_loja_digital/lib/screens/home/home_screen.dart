@@ -12,9 +12,12 @@ class HomeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final background = context.watch<ThemeManager>().background;
+    // Cor legível sobre o fundo escolhido pelo admin (título e ícones do topo).
+    final onBg = ThemeManager.onColor(background);
     return Scaffold(
       drawer: const CustomDrawer(),
-      backgroundColor: context.watch<ThemeManager>().background,
+      backgroundColor: background,
       body: CustomScrollView(
         slivers: <Widget>[
           SliverAppBar(
@@ -22,6 +25,7 @@ class HomeScreen extends StatelessWidget {
             floating: true,
             elevation: 0,
             backgroundColor: Colors.transparent,
+            foregroundColor: onBg,
             centerTitle: true,
             title: Consumer2<HomeManager, ThemeManager>(
               builder: (_, homeManager, theme, __) {
@@ -30,21 +34,21 @@ class HomeScreen extends StatelessWidget {
                   return TextFormField(
                     initialValue: theme.storeName,
                     textAlign: TextAlign.center,
-                    style: const TextStyle(
-                        color: Colors.white,
+                    style: TextStyle(
+                        color: onBg,
                         fontSize: 20,
                         fontWeight: FontWeight.w500),
-                    cursorColor: Colors.white,
-                    decoration: const InputDecoration(
+                    cursorColor: onBg,
+                    decoration: InputDecoration(
                       isDense: true,
                       hintText: 'Título da loja',
-                      hintStyle: TextStyle(color: Colors.white54),
+                      hintStyle: TextStyle(color: onBg.withAlpha(120)),
                       border: InputBorder.none,
                     ),
                     onChanged: theme.setStoreName,
                   );
                 }
-                return Text(theme.storeName);
+                return Text(theme.storeName, style: TextStyle(color: onBg));
               },
             ),
             actions: <Widget>[
@@ -57,15 +61,14 @@ class HomeScreen extends StatelessWidget {
                     return Row(
                       children: <Widget>[
                         if (homeManager.loading)
-                          const Padding(
-                            padding: EdgeInsets.symmetric(horizontal: 16),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
                             child: SizedBox(
                               width: 20,
                               height: 20,
                               child: CircularProgressIndicator(
                                 strokeWidth: 2,
-                                valueColor:
-                                    AlwaysStoppedAnimation(Colors.white),
+                                valueColor: AlwaysStoppedAnimation(onBg),
                               ),
                             ),
                           )
@@ -75,8 +78,8 @@ class HomeScreen extends StatelessWidget {
                               homeManager.discardEditing();
                               context.read<ThemeManager>().discard();
                             },
-                            child: const Text('Descartar',
-                                style: TextStyle(color: Colors.white)),
+                            child: Text('Descartar',
+                                style: TextStyle(color: onBg)),
                           ),
                           TextButton(
                             onPressed: () async {
@@ -92,8 +95,8 @@ class HomeScreen extends StatelessWidget {
                                 );
                               }
                             },
-                            child: const Text('Salvar',
-                                style: TextStyle(color: Colors.white)),
+                            child: Text('Salvar',
+                                style: TextStyle(color: onBg)),
                           ),
                         ],
                       ],

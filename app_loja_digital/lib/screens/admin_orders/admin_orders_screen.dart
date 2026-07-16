@@ -1,4 +1,5 @@
 import 'package:app_loja_digital/common/custom_drawer/custom_drawer.dart';
+import 'package:app_loja_digital/common/message_text.dart';
 import 'package:app_loja_digital/models/order.dart';
 import 'package:app_loja_digital/models/orders_manager.dart';
 import 'package:app_loja_digital/screens/orders/components/order_tile.dart';
@@ -71,17 +72,8 @@ class AdminOrdersScreen extends StatelessWidget {
               ),
               Expanded(
                 child: orders.isEmpty
-                    ? const Center(
-                        child: Padding(
-                          padding: EdgeInsets.all(24),
-                          child: Text(
-                            'Nenhum pedido nos filtros selecionados.',
-                            style: TextStyle(
-                                color: Colors.white, fontSize: 16),
-                            textAlign: TextAlign.center,
-                          ),
-                        ),
-                      )
+                    ? const MessageText(
+                        'Nenhum pedido nos filtros selecionados.')
                     : ListView.builder(
                         padding: const EdgeInsets.all(4),
                         itemCount: orders.length,

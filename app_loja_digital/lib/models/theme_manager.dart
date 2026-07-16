@@ -11,10 +11,11 @@ class ThemeManager extends ChangeNotifier {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   // Valores padrão (a loja atual).
+  // Paleta padrão da loja (usada até o admin personalizar).
   String storeName = 'Loja Digital';
   Color primary = const Color(0xFF047D8D);
   Color background = const Color(0xFFB98A82);
-  Color menu = const Color(0xFFCBECF1);
+  Color menu = const Color(0xFF047D8D); // menu combina com a cor principal
 
   /// Últimas cores usadas pelo admin (máx. 4).
   List<Color> recentColors = [];

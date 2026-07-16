@@ -1,5 +1,6 @@
 import 'package:app_loja_digital/models/home_manager.dart';
 import 'package:app_loja_digital/models/section.dart';
+import 'package:app_loja_digital/models/theme_manager.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -9,12 +10,14 @@ class AddSectionWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final homeManager = context.read<HomeManager>();
+    final onBg =
+        ThemeManager.onColor(context.watch<ThemeManager>().background);
 
     Widget option(IconData icon, String label, String type) {
       return OutlinedButton.icon(
         style: OutlinedButton.styleFrom(
-          foregroundColor: Colors.white,
-          side: const BorderSide(color: Colors.white),
+          foregroundColor: onBg,
+          side: BorderSide(color: onBg),
         ),
         icon: Icon(icon),
         label: Text(label),
@@ -27,8 +30,8 @@ class AddSectionWidget extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          const Text('Adicionar seção como:',
-              style: TextStyle(color: Colors.white70, fontSize: 12)),
+          Text('Adicionar seção como:',
+              style: TextStyle(color: onBg.withAlpha(200), fontSize: 12)),
           const SizedBox(height: 8),
           Wrap(
             spacing: 8,

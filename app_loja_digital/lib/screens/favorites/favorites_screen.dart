@@ -2,6 +2,7 @@ import 'package:app_loja_digital/common/custom_drawer/custom_drawer.dart';
 import 'package:app_loja_digital/models/favorites_manager.dart';
 import 'package:app_loja_digital/models/product.dart';
 import 'package:app_loja_digital/models/product_manager.dart';
+import 'package:app_loja_digital/models/theme_manager.dart';
 import 'package:app_loja_digital/screens/products/components/product_list_tile.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -53,13 +54,15 @@ class _Message extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final onBg =
+        ThemeManager.onColor(context.watch<ThemeManager>().background);
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
         child: Text(
           text,
           textAlign: TextAlign.center,
-          style: const TextStyle(color: Colors.white, fontSize: 16),
+          style: TextStyle(color: onBg, fontSize: 16),
         ),
       ),
     );

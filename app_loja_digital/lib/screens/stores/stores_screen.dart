@@ -1,4 +1,5 @@
 import 'package:app_loja_digital/common/custom_drawer/custom_drawer.dart';
+import 'package:app_loja_digital/common/message_text.dart';
 import 'package:app_loja_digital/models/store.dart';
 import 'package:app_loja_digital/models/stores_manager.dart';
 import 'package:app_loja_digital/models/user_manager.dart';
@@ -36,12 +37,7 @@ class StoresScreen extends StatelessWidget {
         builder: (_, storesManager, __) {
           final stores = storesManager.stores;
           if (stores.isEmpty) {
-            return const Center(
-              child: Text(
-                'Nenhuma loja cadastrada.',
-                style: TextStyle(color: Colors.white, fontSize: 16),
-              ),
-            );
+            return const MessageText('Nenhuma loja cadastrada.');
           }
           return ListView.builder(
             itemCount: stores.length,

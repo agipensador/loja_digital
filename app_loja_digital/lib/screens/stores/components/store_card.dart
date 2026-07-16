@@ -1,3 +1,4 @@
+import 'package:app_loja_digital/common/store_image.dart';
 import 'package:app_loja_digital/models/store.dart';
 import 'package:app_loja_digital/models/user_manager.dart';
 import 'package:flutter/material.dart';
@@ -33,13 +34,7 @@ class StoreCard extends StatelessWidget {
             children: <Widget>[
               AspectRatio(
                 aspectRatio: 16 / 9,
-                child: imageUrl != null
-                    ? Image.network(imageUrl, fit: BoxFit.cover)
-                    : Container(
-                        color: Colors.grey[300],
-                        child: const Icon(Icons.storefront,
-                            size: 48, color: Colors.grey),
-                      ),
+                child: StoreImage(imageUrl),
               ),
               Positioned(
                 top: 8,
@@ -107,7 +102,7 @@ class StoreCard extends StatelessWidget {
                       Expanded(
                         child: Text(store.hours,
                             style: const TextStyle(
-                                fontSize: 12, color: Colors.grey)),
+                                fontSize: 13, color: Colors.black87)),
                       ),
                       if (store.phone.isNotEmpty)
                         IconButton(
