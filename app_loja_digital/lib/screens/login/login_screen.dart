@@ -76,6 +76,39 @@ class LoginScreen extends StatelessWidget {
                   padding: const EdgeInsets.all(16),
                   shrinkWrap: true,
                   children: <Widget>[
+                    Container(
+                      width: double.infinity,
+                      margin: const EdgeInsets.only(bottom: 16),
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).primaryColor.withAlpha(20),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                            color:
+                                Theme.of(context).primaryColor.withAlpha(80)),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: <Widget>[
+                          const Text('Contas para teste',
+                              style: TextStyle(fontWeight: FontWeight.bold)),
+                          const SizedBox(height: 6),
+                          for (final account in _testAccounts)
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 2),
+                              child: Text(
+                                '${account.admin ? "Admin" : "Cliente"}: '
+                                '${account.email}  ·  senha: ${account.password}',
+                                style: const TextStyle(fontSize: 12),
+                              ),
+                            ),
+                          const SizedBox(height: 4),
+                          const Text('Toque num cartão abaixo para entrar.',
+                              style: TextStyle(
+                                  fontSize: 11, color: Colors.black54)),
+                        ],
+                      ),
+                    ),
                     TextFormField(
                       controller: emailController,
                       enabled: !userManager.loading,
