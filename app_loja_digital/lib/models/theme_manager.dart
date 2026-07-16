@@ -15,6 +15,7 @@ class ThemeManager extends ChangeNotifier {
   Color primary = const Color(0xFF047D8D);
   Color background = const Color(0xFFB98A82);
   Color menu = const Color(0xFFCBECF1);
+  Color menuText = const Color(0xFF616161);
 
   /// Últimas cores usadas pelo admin (máx. 4).
   List<Color> recentColors = [];
@@ -31,6 +32,7 @@ class ThemeManager extends ChangeNotifier {
         primary = _color(data['primary'], primary);
         background = _color(data['background'], background);
         menu = _color(data['menu'], menu);
+        menuText = _color(data['menuText'], menuText);
         final recent = data['recentColors'];
         if (recent is List) {
           recentColors =
@@ -67,6 +69,11 @@ class ThemeManager extends ChangeNotifier {
     notifyListeners();
   }
 
+  void setMenuText(Color c) {
+    menuText = c;
+    notifyListeners();
+  }
+
   /// Registra uma cor como "usada recentemente" (dedup, máx. 4) e persiste.
   void pushRecent(Color c) {
     recentColors.removeWhere((x) => x.toARGB32() == c.toARGB32());
@@ -87,6 +94,7 @@ class ThemeManager extends ChangeNotifier {
       'primary': primary.toARGB32(),
       'background': background.toARGB32(),
       'menu': menu.toARGB32(),
+      'menuText': menuText.toARGB32(),
       'recentColors': recentColors.map((c) => c.toARGB32()).toList(),
     });
   }

@@ -27,9 +27,9 @@ class DrawerTile extends StatelessWidget {
     final int currentPage = context.watch<PageManager>().currentPage;
     final Color primaryColor = Theme.of(context).primaryColor;
     final bool selected = page != null && currentPage == page;
-    // Cor legível conforme a cor do menu escolhida pelo admin.
-    final Color onMenu = context.watch<ThemeManager>().onMenu;
-    final Color color = selected ? primaryColor : onMenu;
+    // Cor do texto do menu (escolhida pelo admin).
+    final Color menuText = context.watch<ThemeManager>().menuText;
+    final Color color = selected ? primaryColor : menuText;
 
     return InkWell(
       onTap: () {

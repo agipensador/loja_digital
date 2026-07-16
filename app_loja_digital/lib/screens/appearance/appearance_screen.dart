@@ -68,6 +68,13 @@ class AppearanceScreen extends StatelessWidget {
                 onChange: theme.setMenu,
                 onCommit: theme.pushRecent,
               ),
+              _ColorRow(
+                label: 'Cor das letras do menu',
+                current: theme.menuText,
+                recents: theme.recentColors,
+                onChange: theme.setMenuText,
+                onCommit: theme.pushRecent,
+              ),
 
               const SizedBox(height: 24),
               Row(
@@ -228,10 +235,9 @@ class _ColorRow extends StatelessWidget {
             hexInputBar: true, // campo hexadecimal
             paletteType: PaletteType.hsvWithHue,
             labelTypes: const [],
-            onColorChanged: (c) {
-              temp = c;
-              onChange(c); // pré-visualiza no app na hora
-            },
+            // Só guarda a escolha; aplica no app ao confirmar (evita
+            // rebuilds a cada movimento, que causavam as falhas).
+            onColorChanged: (c) => temp = c,
           ),
         ),
         actions: <Widget>[
@@ -247,9 +253,8 @@ class _ColorRow extends StatelessWidget {
       ),
     );
     if (confirmed == true) {
+      onChange(temp);
       onCommit(temp);
-    } else {
-      onChange(current); // desfaz o preview
     }
   }
 

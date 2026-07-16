@@ -9,7 +9,7 @@ class CustomDrawerHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = context.watch<ThemeManager>();
-    final Color onMenu = theme.onMenu;
+    final Color onMenu = theme.menuText;
     return Container(
       padding: const EdgeInsets.fromLTRB(32, 24, 16, 8),
       height: 180,

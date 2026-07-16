@@ -22,9 +22,30 @@ class HomeScreen extends StatelessWidget {
             floating: true,
             elevation: 0,
             backgroundColor: Colors.transparent,
-            flexibleSpace: const FlexibleSpaceBar(
-              title: Text('Loja Digital'),
-              centerTitle: true,
+            centerTitle: true,
+            title: Consumer2<HomeManager, ThemeManager>(
+              builder: (_, homeManager, theme, __) {
+                if (homeManager.editing) {
+                  // Em edição, o admin pode alterar o título aqui mesmo.
+                  return TextFormField(
+                    initialValue: theme.storeName,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 20,
+                        fontWeight: FontWeight.w500),
+                    cursorColor: Colors.white,
+                    decoration: const InputDecoration(
+                      isDense: true,
+                      hintText: 'Título da loja',
+                      hintStyle: TextStyle(color: Colors.white54),
+                      border: InputBorder.none,
+                    ),
+                    onChanged: theme.setStoreName,
+                  );
+                }
+                return Text(theme.storeName);
+              },
             ),
             actions: <Widget>[
               Consumer2<UserManager, HomeManager>(
@@ -50,12 +71,16 @@ class HomeScreen extends StatelessWidget {
                           )
                         else ...[
                           TextButton(
-                            onPressed: homeManager.discardEditing,
+                            onPressed: () {
+                              homeManager.discardEditing();
+                              context.read<ThemeManager>().discard();
+                            },
                             child: const Text('Descartar',
                                 style: TextStyle(color: Colors.white)),
                           ),
                           TextButton(
                             onPressed: () async {
+                              await context.read<ThemeManager>().save();
                               await homeManager.saveEditing();
                               if (context.mounted &&
                                   homeManager.error != null) {
@@ -80,9 +105,15 @@ class HomeScreen extends StatelessWidget {
                   );
                 },
               ),
-              IconButton(
-                icon: const Icon(Icons.shopping_cart),
-                onPressed: () => Navigator.of(context).pushNamed('/cart'),
+              // Carrinho some no modo de edição.
+              Consumer<HomeManager>(
+                builder: (_, homeManager, __) {
+                  if (homeManager.editing) return const SizedBox.shrink();
+                  return IconButton(
+                    icon: const Icon(Icons.shopping_cart),
+                    onPressed: () => Navigator.of(context).pushNamed('/cart'),
+                  );
+                },
               ),
             ],
           ),
