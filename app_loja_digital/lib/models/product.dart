@@ -1,5 +1,6 @@
 import 'package:image_picker/image_picker.dart';
 
+import 'package:app_loja_digital/core/tenant.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:app_loja_digital/models/item_size.dart';
@@ -34,13 +35,12 @@ class Product extends ChangeNotifier {
         .toList();
   }
 
-  final FirebaseFirestore firestore = FirebaseFirestore.instance;
   final FirebaseStorage storage = FirebaseStorage.instance;
 
   DocumentReference<Map<String, dynamic>> get firestoreRef =>
-      firestore.collection('products').doc(id);
+      Tenant.col('products').doc(id);
 
-  Reference get storageRef => storage.ref().child('products').child(id!);
+  Reference get storageRef => Tenant.storageFolder('products').child(id!);
 
   String? id;
   late String name;
@@ -136,7 +136,7 @@ class Product extends ChangeNotifier {
     };
 
     if (id == null) {
-      final doc = await firestore.collection('products').add(data);
+      final doc = await Tenant.col('products').add(data);
       id = doc.id;
     } else {
       await firestoreRef.update(data);

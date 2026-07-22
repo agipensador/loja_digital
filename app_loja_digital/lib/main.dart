@@ -16,7 +16,10 @@ import 'package:app_loja_digital/screens/payment_methods/add_card_screen.dart';
 import 'package:app_loja_digital/screens/payment_methods/payment_methods_screen.dart';
 import 'package:app_loja_digital/models/store.dart';
 import 'package:app_loja_digital/models/stores_manager.dart';
+import 'package:app_loja_digital/models/tenant_manager.dart';
 import 'package:app_loja_digital/models/user_manager.dart';
+import 'package:app_loja_digital/screens/subscription/subscription_screen.dart';
+import 'package:app_loja_digital/screens/team/team_screen.dart';
 import 'package:app_loja_digital/screens/edit_store/edit_store_screen.dart';
 import 'package:app_loja_digital/screens/favorites/favorites_screen.dart';
 import 'package:app_loja_digital/screens/profile/profile_screen.dart';
@@ -63,6 +66,14 @@ void main() async {
         // UserManager
         ChangeNotifierProvider<UserManager>(
           create: (_) => UserManager(),
+          lazy: false,
+        ),
+
+        // TenantManager: a CONTA da loja atual (equipe, plano, assinatura).
+        ChangeNotifierProxyProvider<UserManager, TenantManager>(
+          create: (_) => TenantManager(FakePaymentService()),
+          update: (_, userManager, tenantManager) =>
+              tenantManager!..updateUser(userManager),
           lazy: false,
         ),
 
@@ -216,6 +227,14 @@ class MyApp extends StatelessWidget {
           case '/add_card':
             return MaterialPageRoute(
               builder: (_) => const AddCardScreen(),
+            );
+          case '/subscription':
+            return MaterialPageRoute(
+              builder: (_) => const SubscriptionScreen(),
+            );
+          case '/team':
+            return MaterialPageRoute(
+              builder: (_) => const TeamScreen(),
             );
           case '/base':
           default:

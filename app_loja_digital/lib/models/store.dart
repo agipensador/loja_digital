@@ -1,3 +1,4 @@
+import 'package:app_loja_digital/core/tenant.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
@@ -52,6 +53,9 @@ class Social {
   }
 }
 
+/// Unidade FÍSICA da loja (endereço, telefone, horário) — exibida na página
+/// "Lojas". Vive em stores/{storeId}/locations. Não confundir com o tenant
+/// em si (StoreAccount, doc raiz stores/{storeId}).
 class Store extends ChangeNotifier {
   Store({
     this.id,
@@ -78,7 +82,6 @@ class Store extends ChangeNotifier {
     socials = List<String>.from(data['socials'] as List<dynamic>? ?? []);
   }
 
-  final FirebaseFirestore firestore = FirebaseFirestore.instance;
   final FirebaseStorage storage = FirebaseStorage.instance;
 
   String? id;
@@ -94,7 +97,7 @@ class Store extends ChangeNotifier {
   late List<String> socials;
 
   DocumentReference<Map<String, dynamic>> get firestoreRef =>
-      firestore.collection('stores').doc(id);
+      Tenant.col('locations').doc(id);
 
   Future<void> save() async {
     final Map<String, dynamic> data = {
@@ -107,7 +110,7 @@ class Store extends ChangeNotifier {
     };
 
     if (id == null) {
-      final doc = await firestore.collection('stores').add(data);
+      final doc = await Tenant.col('locations').add(data);
       id = doc.id;
     } else {
       await firestoreRef.update(data);
@@ -115,7 +118,7 @@ class Store extends ChangeNotifier {
 
     // Upload da nova imagem, se houver.
     if (image is XFile) {
-      final ref = storage.ref().child('stores').child(id!).child(
+      final ref = Tenant.storageFolder('locations').child(id!).child(
             DateTime.now().millisecondsSinceEpoch.toString(),
           );
       final bytes = await (image as XFile).readAsBytes();

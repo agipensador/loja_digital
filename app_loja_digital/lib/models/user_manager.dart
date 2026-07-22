@@ -1,3 +1,6 @@
+import 'dart:async';
+
+import 'package:app_loja_digital/core/tenant.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:app_loja_digital/models/user.dart' as app;
@@ -6,7 +9,7 @@ import 'package:firebase_auth/firebase_auth.dart' as fb;
 class UserManager extends ChangeNotifier {
   UserManager() {
     _loadCurrentUser();
-    _loadAdmins();
+    _listenToStoreRoles();
   }
 
   final fb.FirebaseAuth auth = fb.FirebaseAuth.instance;
@@ -22,13 +25,34 @@ class UserManager extends ChangeNotifier {
   fb.User? _firebaseUser;
   fb.User? get firebaseUser => _firebaseUser;
 
-  final List<String> admins = [];
+  /// Papéis da LOJA atual (stores/{storeId}.masters/admins) — não globais.
+  List<String> _masters = [];
+  List<String> _admins = [];
+  StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>? _rolesSub;
 
-  bool get adminEnabled => user != null && admins.contains(user!.id);
+  /// Admin-master: tudo (inclui equipe e assinatura). Até 3 por loja.
+  bool get masterEnabled => user != null && _masters.contains(user!.id);
+
+  /// Equipe da loja (master OU admin): produtos, home, pedidos.
+  bool get adminEnabled =>
+      user != null &&
+      (_masters.contains(user!.id) || _admins.contains(user!.id));
 
   set loading(bool value) {
     _loading = value;
     notifyListeners();
+  }
+
+  void _listenToStoreRoles() {
+    _rolesSub = Tenant.storeRef.snapshots().listen((snap) {
+      final data = snap.data() ?? <String, dynamic>{};
+      _masters = List<String>.from(data['masters'] as List<dynamic>? ?? []);
+      _admins = List<String>.from(data['admins'] as List<dynamic>? ?? []);
+      user?.admin = adminEnabled;
+      notifyListeners();
+    }, onError: (Object e) {
+      debugPrint('Erro ao ouvir papéis da loja: $e');
+    });
   }
 
   Future<void> signIn(
@@ -38,17 +62,27 @@ class UserManager extends ChangeNotifier {
   }) async {
     loading = true;
     try {
-      final fb.UserCredential result =
-          await auth.signInWithEmailAndPassword(email: user.email, password: user.password);
+      final fb.UserCredential result = await auth.signInWithEmailAndPassword(
+          email: user.email, password: user.password);
 
-      user.id = result.user!.uid;
-      this.user = user;
-      _firebaseUser = result.user;
-      user.admin = admins.contains(user.id);
+      // Carrega o perfil salvo (não sobrescreve o nome com o form de login).
+      final loaded = await _loadCurrentUser(firebaseUser: result.user);
 
-      await user.saveData();
-
-      onSuccess(result.user?.uid);
+      // Cada cliente pertence SOMENTE à loja onde se cadastrou.
+      if (loaded != null && loaded.storeId.isNotEmpty &&
+          loaded.storeId != Tenant.storeId) {
+        await auth.signOut();
+        this.user = null;
+        _firebaseUser = null;
+        onFail('Esta conta pertence a outra loja.');
+      } else {
+        // Backfill de contas antigas (criadas antes do multi-tenant).
+        if (loaded != null && loaded.storeId.isEmpty) {
+          loaded.storeId = Tenant.storeId;
+          await loaded.saveData();
+        }
+        onSuccess(result.user?.uid);
+      }
     } on fb.FirebaseAuthException catch (e) {
       onFail(e.message ?? e.code);
     } catch (e) {
@@ -70,6 +104,7 @@ class UserManager extends ChangeNotifier {
       );
 
       user.id = result.user!.uid;
+      user.storeId = Tenant.storeId; // cliente nasce vinculado a esta loja
       this.user = user;
       _firebaseUser = result.user;
 
@@ -91,41 +126,59 @@ class UserManager extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> _loadCurrentUser({fb.User? firebaseUser}) async {
+  Future<app.User?> _loadCurrentUser({fb.User? firebaseUser}) async {
     final fb.User? currentUser = firebaseUser ?? auth.currentUser;
-    if (currentUser != null) {
-      final DocumentSnapshot<Map<String, dynamic>> docUser =
-          await firestore.collection('users').doc(currentUser.uid).get();
-      user = app.User.fromDocument(docUser);
-      _firebaseUser = currentUser;
+    if (currentUser == null) return null;
 
-      // marca admin caso o UID esteja na lista já carregada
-      user!.admin = admins.contains(user!.id);
+    final DocumentSnapshot<Map<String, dynamic>> docUser =
+        await firestore.collection('users').doc(currentUser.uid).get();
+    user = app.User.fromDocument(docUser);
+    _firebaseUser = currentUser;
+    user!.admin = adminEnabled;
 
-      notifyListeners();
-    }
+    notifyListeners();
+    return user;
   }
 
-  /// Promove o usuário atual a admin (uso de demonstração).
+  /// BOOTSTRAP (dev/demo): torna o usuário atual admin-master da loja.
+  /// Se a loja ainda não existe, cria com ele como dono (trial de 60 dias)
+  /// — é o "quem cria o cadastro vira admin-master".
   Future<void> makeCurrentUserAdmin() async {
     if (user == null) return;
-    await firestore
-        .collection('admins')
-        .doc(user!.id)
-        .set({'email': user!.email});
-    await _loadAdmins();
+    final snap = await Tenant.storeRef.get();
+    final data = snap.data();
+    final masters =
+        List<String>.from(data?['masters'] as List<dynamic>? ?? []);
+
+    if (!snap.exists || masters.isEmpty) {
+      await Tenant.storeRef.set({
+        'name': Tenant.storeId,
+        'slug': Tenant.storeId,
+        'active': true,
+        'ownerUid': user!.id,
+        'masters': [user!.id],
+        'admins': <String>[],
+        'plan': 'mensal_app',
+        'subscription': {
+          'startedAt': Timestamp.now(),
+          'trialEndsAt': Timestamp.fromDate(
+              DateTime.now().add(const Duration(days: 60))),
+          'paidUntil': null,
+          'lastPaymentAt': null,
+          'lastPaymentMethod': '',
+        },
+        'createdAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+    } else if (!masters.contains(user!.id) && masters.length < 3) {
+      await Tenant.storeRef.update({
+        'masters': FieldValue.arrayUnion([user!.id]),
+      });
+    }
   }
 
-  Future<void> _loadAdmins() async {
-    admins.clear();
-    final QuerySnapshot<Map<String, dynamic>> snapAdmins =
-        await firestore.collection('admins').get();
-    for (final doc in snapAdmins.docs) {
-      admins.add(doc.id);
-    }
-    if (user != null) {
-      user!.admin = admins.contains(user!.id);
-    }
-    notifyListeners();
+  @override
+  void dispose() {
+    _rolesSub?.cancel();
+    super.dispose();
   }
 }

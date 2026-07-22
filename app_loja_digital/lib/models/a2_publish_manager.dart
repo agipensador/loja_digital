@@ -1,3 +1,4 @@
+import 'package:app_loja_digital/core/tenant.dart';
 import 'package:app_loja_digital/models/a2_offer.dart';
 import 'package:app_loja_digital/models/product.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -11,8 +12,12 @@ class A2PublishManager extends ChangeNotifier {
   }
 
   static const int maxOffers = 10;
-  static const String storeId =
-      String.fromEnvironment('A2_STORE_ID', defaultValue: 'loja_digital');
+
+  /// Identidade da loja no contrato A2 — por padrão o próprio tenant;
+  /// A2_STORE_ID permite sobrescrever se o A2 usar outra chave.
+  static const String _storeIdOverride = String.fromEnvironment('A2_STORE_ID');
+  static String get storeId =>
+      _storeIdOverride.isNotEmpty ? _storeIdOverride : Tenant.storeId;
 
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 

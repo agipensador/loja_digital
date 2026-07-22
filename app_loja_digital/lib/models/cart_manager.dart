@@ -1,6 +1,8 @@
+import 'package:app_loja_digital/core/tenant.dart';
 import 'package:app_loja_digital/models/address.dart';
 import 'package:app_loja_digital/models/cart_product.dart';
 import 'package:app_loja_digital/models/order.dart';
+import 'package:app_loja_digital/models/plan.dart';
 import 'package:app_loja_digital/models/product.dart';
 import 'package:app_loja_digital/models/user_manager.dart';
 import 'package:app_loja_digital/services/cep_service.dart';
@@ -74,7 +76,11 @@ class CartManager extends ChangeNotifier {
 
   num get subtotalPrice => productsPrice;
 
-  num get totalPrice => productsPrice + deliveryPrice;
+  /// Taxa de serviço da plataforma (R$ 1,99 por pedido), paga pelo cliente.
+  /// Cobre os custos de transação — ver PlatformBilling.
+  num get serviceFee => items.isEmpty ? 0 : PlatformBilling.serviceFee;
+
+  num get totalPrice => productsPrice + deliveryPrice + serviceFee;
 
   bool get isCartValid {
     if (items.isEmpty) return false;
@@ -198,15 +204,14 @@ class CartManager extends ChangeNotifier {
       byProduct.putIfAbsent(cp.productId, () => []).add(cp);
     }
 
-    final counterRef = _firestore.collection('aux').doc('ordercounter');
+    final counterRef = Tenant.col('counters').doc('ordercounter');
 
     await _firestore.runTransaction((tx) async {
       // ---- LEITURAS (devem vir antes de qualquer escrita) ----
       final counterSnap = await tx.get(counterRef);
       final Map<String, Map<String, dynamic>> productData = {};
       for (final pid in byProduct.keys) {
-        final snap =
-            await tx.get(_firestore.collection('products').doc(pid));
+        final snap = await tx.get(Tenant.col('products').doc(pid));
         if (!snap.exists) {
           throw CheckoutException('Produto indisponível');
         }
@@ -246,15 +251,12 @@ class CartManager extends ChangeNotifier {
 
       // ---- ESCRITAS ----
       for (final e in newSizes.entries) {
-        tx.update(
-          _firestore.collection('products').doc(e.key),
-          {'sizes': e.value},
-        );
+        tx.update(Tenant.col('products').doc(e.key), {'sizes': e.value});
       }
       tx.set(counterRef, {'current': nextId});
 
       order.orderId = nextId.toString();
-      tx.set(_firestore.collection('orders').doc(order.orderId), order.toMap());
+      tx.set(Tenant.col('orders').doc(order.orderId), order.toMap());
     });
 
     // Reflete a baixa também nos objetos em memória.

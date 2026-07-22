@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:app_loja_digital/core/tenant.dart';
 import 'package:app_loja_digital/models/order.dart';
 import 'package:app_loja_digital/models/user_manager.dart';
 import 'package:cloud_firestore/cloud_firestore.dart' hide Order;
@@ -7,8 +8,6 @@ import 'package:flutter/foundation.dart';
 
 class OrdersManager extends ChangeNotifier {
   OrdersManager();
-
-  final FirebaseFirestore firestore = FirebaseFirestore.instance;
 
   String? userId;
   bool _admin = false;
@@ -63,7 +62,7 @@ class OrdersManager extends ChangeNotifier {
   }
 
   void _listenToOrders() {
-    Query<Map<String, dynamic>> query = firestore.collection('orders');
+    Query<Map<String, dynamic>> query = Tenant.col('orders');
     if (!_admin) {
       query = query.where('user', isEqualTo: userId);
     }

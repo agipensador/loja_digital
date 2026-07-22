@@ -1,5 +1,6 @@
 import 'package:image_picker/image_picker.dart';
 
+import 'package:app_loja_digital/core/tenant.dart';
 import 'package:app_loja_digital/models/section_item.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
@@ -27,7 +28,6 @@ class Section extends ChangeNotifier {
     _originalItems = List.from(items);
   }
 
-  final FirebaseFirestore firestore = FirebaseFirestore.instance;
   final FirebaseStorage storage = FirebaseStorage.instance;
 
   String? id;
@@ -45,9 +45,9 @@ class Section extends ChangeNotifier {
   }
 
   DocumentReference<Map<String, dynamic>> get firestoreRef =>
-      firestore.collection('home').doc(id);
+      Tenant.col('home').doc(id);
 
-  Reference get storageRef => storage.ref().child('home').child(id!);
+  Reference get storageRef => Tenant.storageFolder('home').child(id!);
 
   void addItem(SectionItem item) {
     items.add(item);
@@ -75,7 +75,7 @@ class Section extends ChangeNotifier {
 
   Future<void> save(int pos) async {
     // Garante um id estável (sem gravar ainda) para os caminhos do Storage.
-    id ??= firestore.collection('home').doc().id;
+    id ??= Tenant.col('home').doc().id;
 
     // 1) Upload das imagens novas ANTES de gravar. Se algum upload falhar,
     // nada é escrito no Firestore — evita seção órfã/vazia.

@@ -1,18 +1,17 @@
+import 'package:app_loja_digital/core/tenant.dart';
 import 'package:app_loja_digital/models/store.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 
+/// Unidades físicas da loja (stores/{storeId}/locations).
 class StoresManager extends ChangeNotifier {
   StoresManager() {
     _loadStores();
   }
 
-  final FirebaseFirestore firestore = FirebaseFirestore.instance;
-
   List<Store> stores = [];
 
   Future<void> _loadStores() async {
-    final snap = await firestore.collection('stores').get();
+    final snap = await Tenant.col('locations').get();
     stores = snap.docs.map((d) => Store.fromDocument(d)).toList();
     notifyListeners();
   }

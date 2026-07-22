@@ -2,6 +2,7 @@ import 'package:app_loja_digital/common/price_card.dart';
 import 'package:app_loja_digital/models/cart_manager.dart';
 import 'package:app_loja_digital/models/order.dart';
 import 'package:app_loja_digital/models/payment_manager.dart';
+import 'package:app_loja_digital/models/tenant_manager.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -16,6 +17,16 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   bool _loading = false;
 
   Future<void> _finish(CartManager cartManager) async {
+    // Loja suspensa (mensalidade vencida) não vende.
+    if (!context.read<TenantManager>().canSell) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Esta loja está temporariamente indisponível.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
     final payment = context.read<PaymentManager>();
     if (payment.selectedMethod == null) {
       ScaffoldMessenger.of(context).showSnackBar(

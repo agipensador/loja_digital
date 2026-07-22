@@ -64,11 +64,13 @@ class ProfileScreen extends StatelessWidget {
                     style: const TextStyle(color: Colors.grey)),
               ),
               if (userManager.adminEnabled)
-                const Center(
+                Center(
                   child: Padding(
-                    padding: EdgeInsets.only(top: 4),
+                    padding: const EdgeInsets.only(top: 4),
                     child: Chip(
-                      label: Text('Administrador'),
+                      label: Text(userManager.masterEnabled
+                          ? 'Admin-master'
+                          : 'Administrador'),
                       visualDensity: VisualDensity.compact,
                     ),
                   ),
@@ -119,6 +121,24 @@ class ProfileScreen extends StatelessWidget {
                   trailing: const Icon(Icons.chevron_right),
                   onTap: () =>
                       Navigator.of(context).pushNamed('/a2_publish'),
+                ),
+              ],
+              if (userManager.masterEnabled) ...[
+                ListTile(
+                  leading: Icon(Icons.group, color: primaryColor),
+                  title: const Text('Equipe da loja'),
+                  subtitle:
+                      const Text('Admins-master (até 3) e admins (até 5)'),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => Navigator.of(context).pushNamed('/team'),
+                ),
+                ListTile(
+                  leading: Icon(Icons.workspace_premium, color: primaryColor),
+                  title: const Text('Assinatura'),
+                  subtitle: const Text('Plano, pagamento e período gratuito'),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () =>
+                      Navigator.of(context).pushNamed('/subscription'),
                 ),
               ],
               const Divider(),

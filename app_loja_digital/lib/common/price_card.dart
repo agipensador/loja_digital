@@ -12,11 +12,32 @@ class PriceCard extends StatelessWidget {
   final String buttonText;
   final VoidCallback? onPressed;
 
+  void _explainServiceFee(BuildContext context) {
+    showDialog<void>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Taxa de serviço'),
+        content: const Text(
+          'Esta taxa cobre os custos das transações de pagamento '
+          '(Pix/cartão) e da operação do aplicativo. Ela é cobrada uma '
+          'única vez por pedido.',
+        ),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Entendi'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final cartManager = context.watch<CartManager>();
     final productsPrice = cartManager.productsPrice;
     final deliveryPrice = cartManager.deliveryPrice;
+    final serviceFee = cartManager.serviceFee;
     final totalPrice = cartManager.totalPrice;
 
     return Card(
@@ -49,6 +70,29 @@ class PriceCard extends StatelessWidget {
                 children: <Widget>[
                   const Text('Entrega'),
                   Text('R\$ ${deliveryPrice.toStringAsFixed(2)}'),
+                ],
+              ),
+            ],
+            if (serviceFee > 0) ...[
+              const SizedBox(height: 6),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: <Widget>[
+                  Row(
+                    children: <Widget>[
+                      const Text('Taxa de serviço'),
+                      const SizedBox(width: 4),
+                      InkWell(
+                        onTap: () => _explainServiceFee(context),
+                        child: Icon(
+                          Icons.info_outline,
+                          size: 16,
+                          color: Theme.of(context).primaryColor,
+                        ),
+                      ),
+                    ],
+                  ),
+                  Text('R\$ ${serviceFee.toStringAsFixed(2)}'),
                 ],
               ),
             ],

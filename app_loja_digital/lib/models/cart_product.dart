@@ -1,3 +1,4 @@
+import 'package:app_loja_digital/core/tenant.dart';
 import 'package:app_loja_digital/models/product.dart';
 import 'package:app_loja_digital/models/item_size.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -21,11 +22,7 @@ class CartProduct {
     size = data['size'] as String? ?? '';
 
     // carrega o produto completo de forma assíncrona
-    FirebaseFirestore.instance
-        .collection('products')
-        .doc(productId)
-        .get()
-        .then((pdoc) {
+    Tenant.col('products').doc(productId).get().then((pdoc) {
       product = Product.fromDocument(pdoc);
     });
   }

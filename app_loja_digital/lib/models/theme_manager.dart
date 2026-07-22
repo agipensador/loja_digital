@@ -1,14 +1,13 @@
+import 'package:app_loja_digital/core/tenant.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
-/// Aparência personalizável da loja (nome + cores), salva em config/appearance.
-/// O admin edita e o app inteiro se ajusta.
+/// Aparência personalizável da loja (nome + cores), salva em
+/// stores/{storeId}/config/appearance. O admin edita e o app inteiro se ajusta.
 class ThemeManager extends ChangeNotifier {
   ThemeManager() {
     _load();
   }
-
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   // Valores padrão (a loja atual).
   // Paleta padrão da loja (usada até o admin personalizar).
@@ -21,7 +20,7 @@ class ThemeManager extends ChangeNotifier {
   List<Color> recentColors = [];
 
   DocumentReference<Map<String, dynamic>> get _ref =>
-      _firestore.collection('config').doc('appearance');
+      Tenant.col('config').doc('appearance');
 
   Future<void> _load() async {
     try {

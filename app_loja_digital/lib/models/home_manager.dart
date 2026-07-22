@@ -1,13 +1,11 @@
+import 'package:app_loja_digital/core/tenant.dart';
 import 'package:app_loja_digital/models/section.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 
 class HomeManager extends ChangeNotifier {
   HomeManager() {
     _loadSections();
   }
-
-  final FirebaseFirestore firestore = FirebaseFirestore.instance;
 
   final List<Section> _sections = [];
 
@@ -24,10 +22,7 @@ class HomeManager extends ChangeNotifier {
       : _sections.where((s) => s.items.isNotEmpty).toList();
 
   Future<void> _loadSections() async {
-    final snap = await firestore
-        .collection('home')
-        .orderBy('pos')
-        .get();
+    final snap = await Tenant.col('home').orderBy('pos').get();
 
     _sections
       ..clear()

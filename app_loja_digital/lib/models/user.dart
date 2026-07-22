@@ -7,12 +7,14 @@ class User {
     required this.password,
     required this.confirmPassword,
     required this.id,
+    this.storeId = '',
   });
 
   User.fromDocument(DocumentSnapshot<Map<String, dynamic>> document)
       : id = document.id,
         name = (document.data()?['name'] ?? '') as String,
         email = (document.data()?['email'] ?? '') as String,
+        storeId = (document.data()?['storeId'] ?? '') as String,
         password = '',
         confirmPassword = '';
 
@@ -21,6 +23,9 @@ class User {
   String email;
   String password;
   String confirmPassword;
+
+  /// Loja onde o usuário se cadastrou — ele pertence somente a ela.
+  String storeId;
 
   bool admin = false;
 
@@ -37,7 +42,9 @@ class User {
   Map<String, dynamic> toMap() {
     return {
       'name': name,
-      'email': email,
+      // normalizado para a busca por e-mail na gestão de equipe
+      'email': email.trim().toLowerCase(),
+      'storeId': storeId,
     };
   }
 }
