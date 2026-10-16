@@ -3,19 +3,30 @@ import 'package:flutter/material.dart';
 
 /// Mostra ao cliente o andamento do pedido, da separação até a entrega.
 class OrderTimeline extends StatelessWidget {
-  const OrderTimeline(this.status, {super.key});
+  const OrderTimeline(this.status, {super.key, this.pickup = false});
 
   final Status status;
 
-  static const _steps = <_Step>[
-    _Step(Status.preparing, Icons.inventory_2_outlined, 'Em separação'),
-    _Step(Status.transporting, Icons.local_shipping_outlined, 'A caminho'),
-    _Step(Status.delivered, Icons.check_circle_outline, 'Entregue'),
-  ];
+  /// Retirada na loja: "Pronto para retirada" no lugar de "A caminho".
+  final bool pickup;
+
+  List<_Step> get _steps => <_Step>[
+        const _Step(
+            Status.pendingPayment, Icons.payments_outlined, 'Pagamento'),
+        const _Step(Status.preparing, Icons.inventory_2_outlined, 'Em separação'),
+        pickup
+            ? const _Step(
+                Status.readyForPickup, Icons.storefront, 'Pronto p/ retirar')
+            : const _Step(
+                Status.transporting, Icons.local_shipping_outlined, 'A caminho'),
+        _Step(Status.delivered, Icons.check_circle_outline,
+            pickup ? 'Retirado' : 'Entregue'),
+      ];
 
   @override
   Widget build(BuildContext context) {
     final primaryColor = Theme.of(context).primaryColor;
+    final steps = _steps;
 
     if (status == Status.canceled) {
       return Container(
@@ -37,11 +48,10 @@ class OrderTimeline extends StatelessWidget {
       );
     }
 
-    // preparing(1) -> 0, transporting(2) -> 1, delivered(3) -> 2
-    final int currentIndex = status.index - 1;
+    final int currentIndex = steps.indexWhere((s) => s.status == status);
 
     final List<Widget> row = [];
-    for (int i = 0; i < _steps.length; i++) {
+    for (int i = 0; i < steps.length; i++) {
       final bool reached = i <= currentIndex;
       final Color color = reached ? primaryColor : Colors.grey.shade300;
       final Color textColor = reached ? primaryColor : Colors.grey;
@@ -53,13 +63,13 @@ class OrderTimeline extends StatelessWidget {
             CircleAvatar(
               radius: 18,
               backgroundColor: color,
-              child: Icon(_steps[i].icon, color: Colors.white, size: 20),
+              child: Icon(steps[i].icon, color: Colors.white, size: 20),
             ),
             const SizedBox(height: 4),
             SizedBox(
               width: 72,
               child: Text(
-                _steps[i].label,
+                steps[i].label,
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 11,
@@ -73,7 +83,7 @@ class OrderTimeline extends StatelessWidget {
         ),
       );
 
-      if (i < _steps.length - 1) {
+      if (i < steps.length - 1) {
         row.add(
           Expanded(
             child: Container(

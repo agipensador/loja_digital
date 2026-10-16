@@ -1,13 +1,13 @@
 rules_version = '2';
 
 // Regras multi-tenant da Plataforma Inforizz de Lojas.
-// Papéis por loja: admin-master (<=3), admin (<=5), cliente (pertence a 1 loja).
-// Ver docs/ARQUITETURA_SAAS.md §2.1 e §2.5.
+// Papéis por loja: donos/sócios (`masters`, até 3) com acesso total, e
+// funcionários (`staff/{uid}`) com permissões por toggle e vínculo a
+// unidades físicas (`locationIds`, vazio = todas). Ver docs/ARQUITETURA_SAAS.md.
 //
-// NOTA DE FASE: enquanto o checkout e a assinatura rodam no cliente (mock),
-// algumas escritas precisam ser permitidas ao app (estoque no checkout,
-// subscription pelo master). Quando as Cloud Functions entrarem (Fase 1/3),
-// esses pontos migram para o Admin SDK e as regras ficam mais restritas.
+// NOTA DE FASE: enquanto o checkout roda no app (até as Cloud Functions do
+// Mercado Pago entrarem), o cliente ainda precisa baixar estoque e usar o
+// contador. Quando `createCheckout` estiver no ar, essas permissões saem.
 
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -18,7 +18,7 @@ service cloud.firestore {
 
     function isSuperAdmin() {
       return signedIn() &&
-        exists(/databases/$(database)/documents/platform/superadmins/$(request.auth.uid));
+        exists(/databases/$(database)/documents/platform/superadmins/items/$(request.auth.uid));
     }
 
     function store(storeId) {
@@ -30,12 +30,37 @@ service cloud.firestore {
         request.auth.uid in store(storeId).get('masters', []);
     }
 
-    function isStoreAdmin(storeId) {
-      // Master também é admin para fins de permissão de conteúdo.
-      return signedIn() && (
-        request.auth.uid in store(storeId).get('admins', []) ||
-        request.auth.uid in store(storeId).get('masters', [])
-      );
+    function isOwner(storeId) {
+      return signedIn() && store(storeId).get('ownerUid', '') == request.auth.uid;
+    }
+
+    function staffPath(storeId) {
+      return /databases/$(database)/documents/stores/$(storeId)/staff/$(request.auth.uid);
+    }
+
+    function isStaff(storeId) {
+      return signedIn() && exists(staffPath(storeId));
+    }
+
+    // Dono ou funcionário (vê a área administrativa).
+    function isTeam(storeId) {
+      return isMaster(storeId) || isStaff(storeId);
+    }
+
+    // O superadmin (painel da plataforma) tem todas as permissões em todas
+    // as lojas — para suporte, configuração e moderação.
+    function hasPerm(storeId, perm) {
+      return isSuperAdmin() || isMaster(storeId) ||
+        (isStaff(storeId) &&
+         get(staffPath(storeId)).data.get('perms', {}).get(perm, false) == true);
+    }
+
+    // Funcionário sem unidades vinculadas trabalha em todas.
+    function worksAt(storeId, locationId) {
+      return isSuperAdmin() || isMaster(storeId) ||
+        (isStaff(storeId) && (
+          get(staffPath(storeId)).data.get('locationIds', []).size() == 0 ||
+          locationId in get(staffPath(storeId)).data.get('locationIds', [])));
     }
 
     function storeActive(storeId) {
@@ -49,13 +74,30 @@ service cloud.firestore {
           .data.get('storeId', '') == storeId;
     }
 
+    function changed() {
+      return request.resource.data.diff(resource.data).affectedKeys();
+    }
+
     // ------------------------------------------------------------------
     // Plataforma (painel-mestre do Giovanni)
     // ------------------------------------------------------------------
-    match /platform/superadmins/{uid} {
+    // Superadmins: platform/superadmins/items/{uid} (criado pelo console).
+    match /platform/superadmins/items/{uid} {
       allow read: if signedIn() && request.auth.uid == uid;
-      // Escrita apenas via console/Admin SDK.
-      allow write: if false;
+      allow write: if false; // só console/Admin SDK
+    }
+
+    // Pedido de encerramento: o dono cria; a plataforma decide.
+    match /platform/closureRequests/requests/{storeId} {
+      allow create: if isOwner(storeId) &&
+        request.resource.data.requestedBy == request.auth.uid;
+      allow read: if isOwner(storeId) || isSuperAdmin();
+      allow update, delete: if isSuperAdmin();
+    }
+
+    // Avisos da plataforma para os lojistas (portal de notificações).
+    match /platform/announcements/items/{id} {
+      allow read: if signedIn();
     }
 
     match /platform/{doc=**} {
@@ -69,71 +111,178 @@ service cloud.firestore {
       // Branding/vitrine são públicos (o site precisa ler sem login).
       allow read: if true;
 
-      // Criação da loja: quem cria vira o admin-master inicial.
-      allow create: if signedIn() &&
-        request.resource.data.ownerUid == request.auth.uid &&
-        request.resource.data.masters == [request.auth.uid] &&
-        request.resource.data.get('admins', []).size() == 0;
+      // Lojas nascem só pelo painel da plataforma ou pelo
+      // tool/provision_store.js (Admin SDK), com pendingOwnerEmail: o dono
+      // assume depois de confirmar o e-mail (regra de update abaixo).
+      allow create: if isSuperAdmin();
 
-      // Master administra a própria loja (equipe, plano, assinatura mock).
-      // Limites de equipe: até 3 masters e 5 admins — validados aqui também.
-      // TODO(Fase 3): mover 'active'/'subscription' para backend-only.
-      allow update: if (isMaster(storeId) &&
-          request.resource.data.masters.size() >= 1 &&
-          request.resource.data.masters.size() <= 3 &&
-          request.resource.data.get('admins', []).size() <= 5)
-        || isSuperAdmin();
+      // Donos administram a loja (sócios, plano, quem paga a taxa). Não
+      // podem: trocar o dono, marcar MP como conectado (só o backend) nem
+      // mudar o VALOR da taxa da plataforma (só o superadmin).
+      // TODO(Fase B): mover 'active'/'subscription' para backend-only.
+      allow update: if isSuperAdmin() || (
+        isMaster(storeId) &&
+        request.resource.data.masters.size() >= 1 &&
+        request.resource.data.masters.size() <= 3 &&
+        (resource.data.get('ownerUid', '') == '' ||
+         resource.data.ownerUid in request.resource.data.masters) &&
+        !changed().hasAny(['ownerUid', 'mpConnected']) &&
+        request.resource.data.get('serviceFee', {}).get('amount', 0.99) ==
+          resource.data.get('serviceFee', {}).get('amount', 0.99));
+
+      // Quem envia avisos marca a versão do app já anunciada aos clientes.
+      allow update: if hasPerm(storeId, 'notifications') &&
+        changed().hasOnly(['announcedVersion']);
+
+      // Loja criada pelo tool/new_flavor.sh: o dono assume ao entrar no app
+      // com o e-mail informado (só enquanto a loja não tem nenhum master).
+      allow update: if signedIn() &&
+        resource.data.get('pendingOwnerEmail', '') != '' &&
+        request.auth.token.email.lower() == resource.data.pendingOwnerEmail &&
+        request.auth.token.email_verified == true &&
+        resource.data.get('masters', []).size() == 0 &&
+        request.resource.data.masters == [request.auth.uid] &&
+        request.resource.data.ownerUid == request.auth.uid &&
+        changed().hasOnly(['masters', 'ownerUid', 'pendingOwnerEmail']);
 
       allow delete: if isSuperAdmin();
+
+      // ---- Tokens OAuth do Mercado Pago: só o backend (Admin SDK) ----
+      match /private/{doc=**} {
+        allow read, write: if false;
+      }
+
+      // ---- Funcionários ----
+      match /staff/{uid} {
+        allow read: if isMaster(storeId) || isSuperAdmin() ||
+          (signedIn() && request.auth.uid == uid);
+        allow create, update: if isMaster(storeId);
+        // O próprio funcionário pode sair (exclusão da conta dele).
+        allow delete: if isMaster(storeId) ||
+          (signedIn() && request.auth.uid == uid);
+      }
 
       // ---- Branding / aparência ----
       match /config/{doc} {
         allow read: if true;
-        allow write: if isStoreAdmin(storeId);
+        allow write: if hasPerm(storeId, 'appearance');
       }
 
       // ---- Catálogo ----
       match /products/{productId} {
         allow read: if true;
-        allow create, delete: if isStoreAdmin(storeId);
-        // Admin edita tudo; cliente da loja só pode dar baixa/devolver
-        // estoque ('sizes') durante o checkout/cancelamento transacional.
-        // TODO(Fase 1): quando o checkout virar Cloud Function, remover a
-        // permissão de cliente aqui.
-        allow update: if isStoreAdmin(storeId) ||
+        allow create: if hasPerm(storeId, 'productsCreate');
+        allow delete: if isMaster(storeId);
+        // Excluir é soft-delete (campo `deleted`), separado de editar.
+        allow update: if isMaster(storeId) ||
+          (hasPerm(storeId, 'productsEdit') && !changed().hasAny(['deleted'])) ||
+          // Product.save cria o doc e só depois grava as URLs das fotos.
+          (hasPerm(storeId, 'productsCreate') &&
+           changed().hasOnly(['images', 'thumbs', 'updatedAt'])) ||
+          (hasPerm(storeId, 'productsDelete') &&
+           changed().hasOnly(['deleted', 'updatedAt'])) ||
+          (hasPerm(storeId, 'stock') &&
+           changed().hasOnly(['sizes', 'lowStockThreshold', 'updatedAt'])) ||
+          // TODO(Fase B): sai quando o checkout virar Cloud Function.
           (isStoreCustomer(storeId) && storeActive(storeId) &&
-           request.resource.data.diff(resource.data).affectedKeys()
-             .hasOnly(['sizes']));
+           changed().hasOnly(['sizes', 'updatedAt']));
       }
 
       // ---- Seções da home ----
       match /home/{sectionId} {
         allow read: if true;
-        allow write: if isStoreAdmin(storeId);
+        allow write: if hasPerm(storeId, 'home');
       }
 
-      // ---- Lojas físicas (endereços/unidades) ----
+      // ---- Unidades físicas ----
       match /locations/{locationId} {
         allow read: if true;
-        allow write: if isStoreAdmin(storeId);
+        allow create, delete: if isMaster(storeId);
+        allow update: if hasPerm(storeId, 'locations') &&
+          worksAt(storeId, locationId);
       }
 
-      // ---- Pedidos ----
+      // ---- Zonas de entrega própria (pertencem a uma unidade) ----
+      match /deliveryZones/{zoneId} {
+        allow read: if true;
+        allow create, update: if hasPerm(storeId, 'deliveryZones') &&
+          worksAt(storeId, request.resource.data.get('locationId', 'principal'));
+        allow delete: if hasPerm(storeId, 'deliveryZones') &&
+          worksAt(storeId, resource.data.get('locationId', 'principal'));
+      }
+
+      // ---- Uso da loja (medidor do plano) ----
+      // Visitas do mês: qualquer visitante soma exatamente +1.
+      match /stats/{month} {
+        allow read: if isTeam(storeId) || isSuperAdmin();
+        allow create: if month != 'usage' &&
+          request.resource.data.keys().hasOnly(['visits']) &&
+          request.resource.data.visits == 1;
+        allow update: if month != 'usage' &&
+          changed().hasOnly(['visits']) &&
+          request.resource.data.visits == resource.data.visits + 1;
+      }
+      // Armazenamento: só a equipe (quem envia fotos) atualiza.
+      // Perguntas mais clicadas do atendimento (ordena o menu do chat).
+      match /stats/chat {
+        allow read: if true;
+        allow write: if request.resource.data.keys().hasOnly(['counts']);
+      }
+
+      match /stats/usage {
+        allow read: if isTeam(storeId) || isSuperAdmin();
+        allow write: if isTeam(storeId) &&
+          request.resource.data.keys().hasOnly(['storageBytes']);
+      }
+
+      // ---- Avisos da loja para os clientes (notificações) ----
+      match /campaigns/{campaignId} {
+        allow read: if true;
+        allow create: if hasPerm(storeId, 'notifications') &&
+          request.resource.data.createdBy == request.auth.uid &&
+          request.resource.data.keys().hasOnly(
+            ['title', 'body', 'createdBy', 'createdAt']);
+        allow update, delete: if isMaster(storeId) || isSuperAdmin();
+      }
+
+      // ---- Fornecedores (reposição pelo WhatsApp) ----
+      match /suppliers/{supplierId} {
+        allow read: if isTeam(storeId) || isSuperAdmin();
+        allow write: if hasPerm(storeId, 'stock');
+      }
+
+      // ---- Checkouts (1 pagamento MP cobrindo N pedidos) ----
+      match /checkouts/{checkoutId} {
+        allow read: if signedIn() && resource.data.userId == request.auth.uid;
+        allow write: if false; // só o backend
+      }
+
+      // ---- Pedidos (1 por unidade) ----
       match /orders/{orderId} {
-        // Cliente vê os próprios pedidos; admin vê todos os da loja.
-        allow read: if isStoreAdmin(storeId) ||
-          (signedIn() && resource.data.user == request.auth.uid);
+        // Cliente vê os próprios; equipe vê os das unidades em que trabalha.
+        allow read: if (signedIn() && resource.data.user == request.auth.uid) ||
+          (hasPerm(storeId, 'orders') &&
+           worksAt(storeId, resource.data.get('locationId', 'principal')));
         // Só a loja ativa vende, e o pedido nasce em nome do próprio cliente.
         allow create: if isStoreCustomer(storeId) && storeActive(storeId) &&
           request.resource.data.user == request.auth.uid;
-        // Status/rastreio: admin da loja.
-        allow update: if isStoreAdmin(storeId);
+        allow update: if (hasPerm(storeId, 'orders') &&
+            worksAt(storeId, resource.data.get('locationId', 'principal'))) ||
+          // Cliente só responde à proposta de troca de entrega da loja.
+          (signedIn() && resource.data.user == request.auth.uid &&
+           changed().hasOnly(['deliveryChange']) &&
+           resource.data.deliveryChange.status == 'pending' &&
+           request.resource.data.deliveryChange
+             .diff(resource.data.deliveryChange).affectedKeys()
+             .hasOnly(['status']) &&
+           request.resource.data.deliveryChange.status in
+             ['accepted', 'rejected']);
         allow delete: if isSuperAdmin();
       }
 
       // ---- Contador de pedidos (transação do checkout) ----
       match /counters/{counterId} {
-        allow read, write: if isStoreAdmin(storeId) ||
+        allow read, write: if isTeam(storeId) ||
           (isStoreCustomer(storeId) && storeActive(storeId));
       }
     }
@@ -142,15 +291,22 @@ service cloud.firestore {
     // Usuários (globais; cada um pertence a UMA loja via storeId)
     // ------------------------------------------------------------------
     match /users/{uid} {
-      // O dono lê/escreve o próprio perfil. Admin da loja do usuário pode
-      // ler (para equipe/atendimento). storeId não muda depois de definido.
+      // O dono lê/escreve o próprio perfil. A equipe da loja do usuário
+      // pode ler (atendimento). storeId não muda depois de definido.
       allow read: if signedIn() &&
         (request.auth.uid == uid || isSuperAdmin() ||
-         isStoreAdmin(resource.data.get('storeId', '')));
+         isTeam(resource.data.get('storeId', '')));
       allow create: if signedIn() && request.auth.uid == uid;
       allow update: if signedIn() && request.auth.uid == uid &&
         (!('storeId' in resource.data) || resource.data.storeId == '' ||
-         request.resource.data.get('storeId', '') == resource.data.storeId);
+         request.resource.data.get('storeId', '') == resource.data.storeId) &&
+        // O próprio usuário não se desbloqueia.
+        request.resource.data.get('blocked', false) ==
+          resource.data.get('blocked', false);
+      // Painel da plataforma: bloquear/desbloquear usuário.
+      allow update: if isSuperAdmin() &&
+        request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['blocked']);
       allow delete: if signedIn() && request.auth.uid == uid;
 
       // Carrinho, endereços, cartões (mascarados) e favoritos: só o dono.
@@ -161,16 +317,15 @@ service cloud.firestore {
 
     // ------------------------------------------------------------------
     // Outbox do contrato A2 (ver docs/A2_INTEGRACAO.md)
-    // O A2 consome via Adapter/Admin SDK (não passa por estas regras).
     // ------------------------------------------------------------------
     match /a2_offers/{offerId} {
       allow read: if signedIn();
-      allow create: if isStoreAdmin(request.resource.data.storeId);
-      allow update, delete: if isStoreAdmin(resource.data.storeId);
+      allow create: if isMaster(request.resource.data.storeId);
+      allow update, delete: if isMaster(resource.data.storeId);
     }
 
     // Bloqueia qualquer caminho não previsto (inclui as coleções antigas
-    // da raiz: products, orders, home, config, admins, aux — migrar!).
+    // da raiz: products, orders, home, config, admins, aux).
     match /{document=**} {
       allow read, write: if false;
     }

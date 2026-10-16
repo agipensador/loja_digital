@@ -1,3 +1,4 @@
+import 'package:app_loja_digital/helpers/br_format.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:app_loja_digital/models/cart_manager.dart';
@@ -60,7 +61,7 @@ class PriceCard extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: <Widget>[
                 const Text('Subtotal'),
-                Text('R\$ ${productsPrice.toStringAsFixed(2)}'),
+                Text(Br.money(productsPrice)),
               ],
             ),
             if (deliveryPrice > 0) ...[
@@ -69,7 +70,7 @@ class PriceCard extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: <Widget>[
                   const Text('Entrega'),
-                  Text('R\$ ${deliveryPrice.toStringAsFixed(2)}'),
+                  Text(Br.money(deliveryPrice)),
                 ],
               ),
             ],
@@ -92,7 +93,7 @@ class PriceCard extends StatelessWidget {
                       ),
                     ],
                   ),
-                  Text('R\$ ${serviceFee.toStringAsFixed(2)}'),
+                  Text(Br.money(serviceFee)),
                 ],
               ),
             ],
@@ -105,7 +106,7 @@ class PriceCard extends StatelessWidget {
                   style: TextStyle(fontWeight: FontWeight.w500),
                 ),
                 Text(
-                  'R\$ ${totalPrice.toStringAsFixed(2)}',
+                  Br.money(totalPrice),
                   style: TextStyle(
                     color: Theme.of(context).primaryColor,
                     fontSize: 16,

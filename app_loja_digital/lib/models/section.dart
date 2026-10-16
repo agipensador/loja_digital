@@ -1,3 +1,4 @@
+import 'package:app_loja_digital/services/image_service.dart';
 import 'package:image_picker/image_picker.dart';
 
 import 'package:app_loja_digital/core/tenant.dart';
@@ -81,14 +82,9 @@ class Section extends ChangeNotifier {
     // nada é escrito no Firestore — evita seção órfã/vazia.
     for (final item in items) {
       if (item.image is XFile) {
-        final Reference ref = storageRef.child(
-          DateTime.now().millisecondsSinceEpoch.toString(),
-        );
-        final bytes = await (item.image as XFile).readAsBytes();
-        final UploadTask task =
-            ref.putData(bytes, SettableMetadata(contentType: 'image/jpeg'));
-        final TaskSnapshot snapshot = await task;
-        item.image = await snapshot.ref.getDownloadURL();
+        final uploaded =
+            await ImageService.upload(storageRef, item.image as XFile);
+        item.image = uploaded.url;
       }
     }
 
@@ -106,11 +102,7 @@ class Section extends ChangeNotifier {
           original.image is String &&
           (original.image as String)
               .contains('firebasestorage.googleapis.com')) {
-        try {
-          await storage.refFromURL(original.image as String).delete();
-        } catch (e) {
-          debugPrint('Falha ao apagar imagem de seção: $e');
-        }
+        await ImageService.delete(original.image as String);
       }
     }
 
@@ -123,11 +115,7 @@ class Section extends ChangeNotifier {
       if (item.image is String &&
           (item.image as String)
               .contains('firebasestorage.googleapis.com')) {
-        try {
-          await storage.refFromURL(item.image as String).delete();
-        } catch (e) {
-          debugPrint('Falha ao apagar imagem de seção: $e');
-        }
+        await ImageService.delete(item.image as String);
       }
     }
   }

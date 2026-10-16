@@ -53,14 +53,54 @@ class ProductManager extends ChangeNotifier {
     return result.toList();
   }
 
+  /// Sincronização incremental do catálogo, a cada abertura do app:
+  /// 1. mostra na hora o que está no cache local do Firestore (sem custo);
+  /// 2. pede ao servidor só os produtos com `updatedAt` mais novo que o
+  ///    mais recente do cache — novos, editados, estoque e excluídos
+  ///    (exclusão é soft-delete, também atualiza `updatedAt`).
+  /// Sem cache (1º acesso), baixa tudo uma vez. Com 300 produtos e nada
+  /// alterado, uma abertura custa 0–1 leitura em vez de 300.
   Future<void> _loadAllProducts() async {
-    final QuerySnapshot<Map<String, dynamic>> snapProducts =
-        await Tenant.col('products').get();
+    final col = Tenant.col('products');
+    final Map<String, Product> byId = {};
 
-    _allProducts =
-        snapProducts.docs.map((d) => Product.fromDocument(d)).toList();
+    try {
+      final cached = await col.get(const GetOptions(source: Source.cache));
+      for (final d in cached.docs) {
+        byId[d.id] = Product.fromDocument(d);
+      }
+      if (byId.isNotEmpty) {
+        _allProducts = byId.values.toList();
+        notifyListeners();
+      }
+    } catch (_) {
+      // Sem cache disponível (ex.: navegador sem IndexedDB): segue p/ servidor.
+    }
+
+    Timestamp? newest;
+    for (final p in byId.values) {
+      final t = p.updatedAt;
+      if (t != null && (newest == null || t.compareTo(newest) > 0)) newest = t;
+    }
+
+    try {
+      final query = newest == null
+          ? col
+          : col.where('updatedAt', isGreaterThan: newest);
+      final fresh = await query.get(const GetOptions(source: Source.server));
+      for (final d in fresh.docs) {
+        byId[d.id] = Product.fromDocument(d);
+      }
+    } catch (e) {
+      debugPrint('Catálogo offline, usando cache: $e');
+    }
+
+    _allProducts = byId.values.toList();
     notifyListeners();
   }
+
+  /// Força uma atualização (ex.: puxar para atualizar, volta do background).
+  Future<void> refresh() => _loadAllProducts();
 
   Product? findProductById(String id) {
     try {

@@ -1,5 +1,6 @@
 import 'package:app_loja_digital/models/user.dart' as app;
 import 'package:app_loja_digital/models/user_manager.dart';
+import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter/material.dart';
 
@@ -27,7 +28,8 @@ class LoginScreen extends StatelessWidget {
   final TextEditingController passController = TextEditingController();
   final GlobalKey<FormState> formKey = GlobalKey<FormState>();
 
-  static const List<_TestAccount> _testAccounts = [
+  // Só em debug: em release a conta "Admin" viraria dona de qualquer loja nova.
+  static const List<_TestAccount> _testAccounts = !kDebugMode ? [] : [
     _TestAccount(
       label: 'Admin (gerencia a loja)',
       name: 'Admin',
@@ -76,6 +78,7 @@ class LoginScreen extends StatelessWidget {
                   padding: const EdgeInsets.all(16),
                   shrinkWrap: true,
                   children: <Widget>[
+                    if (_testAccounts.isNotEmpty)
                     Container(
                       width: double.infinity,
                       margin: const EdgeInsets.only(bottom: 16),
@@ -136,7 +139,15 @@ class LoginScreen extends StatelessWidget {
                         return null;
                       },
                     ),
-                    const SizedBox(height: 16),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: TextButton(
+                        onPressed: userManager.loading
+                            ? null
+                            : () => _showForgotPasswordDialog(context),
+                        child: const Text('Esqueci minha senha'),
+                      ),
+                    ),
                     SizedBox(
                       height: 44,
                       child: ElevatedButton(
@@ -165,16 +176,18 @@ class LoginScreen extends StatelessWidget {
                                 style: TextStyle(fontSize: 18)),
                       ),
                     ),
-                    const SizedBox(height: 24),
-                    const Divider(),
-                    const Text(
-                      'Contas de teste (toque para entrar)',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black54,
+                    if (_testAccounts.isNotEmpty) ...[
+                      const SizedBox(height: 24),
+                      const Divider(),
+                      const Text(
+                        'Contas de teste (toque para entrar)',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black54,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 8),
+                      const SizedBox(height: 8),
+                    ],
                     for (final account in _testAccounts)
                       Card(
                         color: Theme.of(context).primaryColor.withAlpha(20),
@@ -201,6 +214,75 @@ class LoginScreen extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+
+  Future<void> _showForgotPasswordDialog(BuildContext context) async {
+    final TextEditingController resetEmailController =
+        TextEditingController(text: emailController.text);
+    final GlobalKey<FormState> resetFormKey = GlobalKey<FormState>();
+
+    return showDialog<void>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('Recuperar senha'),
+          content: Form(
+            key: resetFormKey,
+            child: TextFormField(
+              controller: resetEmailController,
+              decoration: const InputDecoration(
+                hintText: 'Seu e-mail de cadastro',
+              ),
+              keyboardType: TextInputType.emailAddress,
+              autocorrect: false,
+              validator: (String? email) {
+                if (email == null || !emailValid(email)) {
+                  return 'E-mail inválido';
+                }
+                return null;
+              },
+            ),
+          ),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text('Cancelar'),
+            ),
+            TextButton(
+              onPressed: () {
+                if (!resetFormKey.currentState!.validate()) return;
+                Navigator.of(dialogContext).pop();
+                dialogContext.read<UserManager>().sendPasswordReset(
+                      resetEmailController.text,
+                      onSuccess: () {
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text(
+                                  'Enviamos um e-mail com instruções para '
+                                  'redefinir sua senha.'),
+                            ),
+                          );
+                        }
+                      },
+                      onFail: (e) {
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Não foi possível enviar: $e'),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                        }
+                      },
+                    );
+              },
+              child: const Text('Enviar'),
+            ),
+          ],
+        );
+      },
     );
   }
 

@@ -1,3 +1,5 @@
+import 'package:app_loja_digital/helpers/br_format.dart';
+import 'package:app_loja_digital/common/location_availability.dart';
 import 'package:app_loja_digital/common/stock_badge.dart';
 import 'package:app_loja_digital/common/store_image.dart';
 import 'package:app_loja_digital/models/product.dart';
@@ -27,7 +29,7 @@ class ProductGridTile extends StatelessWidget {
                 fit: StackFit.expand,
                 children: <Widget>[
                   StoreImage(
-                    product.images.isNotEmpty ? product.images.first : null,
+                    product.coverThumb,
                   ),
                   Positioned(
                     top: 6,
@@ -51,12 +53,13 @@ class ProductGridTile extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    'R\$ ${product.basePrice.toStringAsFixed(2)}',
+                    Br.money(product.basePrice),
                     style: TextStyle(
                         color: primaryColor,
                         fontSize: 15,
                         fontWeight: FontWeight.bold),
                   ),
+                  LocationAvailability(product, compact: true),
                 ],
               ),
             ),

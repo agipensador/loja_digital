@@ -1,3 +1,4 @@
+import 'package:app_loja_digital/models/staff_member.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:app_loja_digital/common/custom_drawer/drawer_tile.dart';
@@ -48,7 +49,15 @@ class CustomDrawer extends StatelessWidget {
                       iconData: Icons.location_on,
                       title: 'Lojas',
                       page: NavPages.lojas),
-                  if (userManager.adminEnabled) ...const <Widget>[
+                  const DrawerTile(
+                      iconData: Icons.notifications,
+                      title: 'Notificações',
+                      route: '/notifications'),
+                  const DrawerTile(
+                      iconData: Icons.support_agent,
+                      title: 'Atendimento',
+                      route: '/chat'),
+                  if (userManager.can(Perm.orders)) ...const <Widget>[
                     Divider(),
                     DrawerTile(
                         iconData: Icons.settings,

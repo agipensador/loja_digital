@@ -1,0 +1,9 @@
+{
+  "@@locale": "en",
+  "appOffline": "OOPS! THE {name} APP IS OFFLINE RIGHT NOW. WE'LL BE BACK SOON.",
+  "noOrdersWhileOffline": "Orders are unavailable in the meantime.",
+  "teamLogin": "I'm on the store team",
+  "chatTitle": "Support",
+  "chatGreeting": "Hi! I'm the {store} assistant. How can I help?",
+  "notificationsTitle": "Notifications"
+}

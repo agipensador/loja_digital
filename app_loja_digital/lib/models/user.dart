@@ -29,6 +29,9 @@ class User {
 
   bool admin = false;
 
+  /// Versão dos Termos/Política aceita no cadastro (prova de consentimento).
+  static const String currentTermsVersion = '2026-09';
+
   DocumentReference<Map<String, dynamic>> get firestoreRef =>
       FirebaseFirestore.instance.collection('users').doc(id);
 
@@ -36,7 +39,7 @@ class User {
       firestoreRef.collection('cart');
 
   Future<void> saveData() async {
-    await firestoreRef.set(toMap());
+    await firestoreRef.set(toMap(), SetOptions(merge: true));
   }
 
   Map<String, dynamic> toMap() {
@@ -46,5 +49,12 @@ class User {
       'email': email.trim().toLowerCase(),
       'storeId': storeId,
     };
+  }
+
+  Future<void> recordTermsAcceptance() async {
+    await firestoreRef.set({
+      'acceptedTermsVersion': currentTermsVersion,
+      'acceptedTermsAt': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
   }
 }

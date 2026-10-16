@@ -9,6 +9,46 @@ class ImagesForm extends StatelessWidget {
 
   final Product product;
 
+  /// Foto por link (não ocupa armazenamento da loja). Se o site de origem
+  /// apagar a foto, ela some aqui também — o aviso deixa isso claro.
+  static Future<String?> _askImageUrl(BuildContext context) async {
+    final controller = TextEditingController();
+    final url = await showDialog<String>(
+      context: context,
+      builder: (c) => AlertDialog(
+        title: const Text('Adicionar imagem por link'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            TextField(
+              controller: controller,
+              keyboardType: TextInputType.url,
+              decoration:
+                  const InputDecoration(hintText: 'https://...'),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'A imagem continua no site de origem: se ela for apagada lá, '
+              'some aqui também. Para não depender disso, envie a foto.',
+              style: TextStyle(fontSize: 12, color: Colors.grey),
+            ),
+          ],
+        ),
+        actions: <Widget>[
+          TextButton(
+              onPressed: () => Navigator.pop(c),
+              child: const Text('Cancelar')),
+          ElevatedButton(
+              onPressed: () => Navigator.pop(c, controller.text.trim()),
+              child: const Text('Adicionar')),
+        ],
+      ),
+    );
+    controller.dispose();
+    if (url == null || !url.startsWith('http')) return null;
+    return url;
+  }
+
   @override
   Widget build(BuildContext context) {
     final picker = ImagePicker();
@@ -95,6 +135,20 @@ class ImagesForm extends StatelessWidget {
                                   leading: const Icon(Icons.photo_library),
                                   title: const Text('Galeria'),
                                   onTap: () => pick(ImageSource.gallery),
+                                ),
+                                ListTile(
+                                  leading: const Icon(Icons.link),
+                                  title: const Text('Link da imagem'),
+                                  subtitle: const Text(
+                                      'Ex.: foto do seu anúncio na Shopee'),
+                                  onTap: () async {
+                                    Navigator.of(context).pop();
+                                    final url = await _askImageUrl(context);
+                                    if (url != null) {
+                                      state.value!.add(url);
+                                      state.didChange(state.value);
+                                    }
+                                  },
                                 ),
                               ],
                             ),

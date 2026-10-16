@@ -1,3 +1,4 @@
+import 'package:app_loja_digital/models/staff_member.dart';
 import 'package:app_loja_digital/common/custom_drawer/custom_drawer.dart';
 import 'package:app_loja_digital/models/home_manager.dart';
 import 'package:app_loja_digital/models/theme_manager.dart';
@@ -54,7 +55,7 @@ class HomeScreen extends StatelessWidget {
             actions: <Widget>[
               Consumer2<UserManager, HomeManager>(
                 builder: (_, userManager, homeManager, __) {
-                  if (!userManager.adminEnabled) {
+                  if (!userManager.can(Perm.home)) {
                     return const SizedBox.shrink();
                   }
                   if (homeManager.editing) {

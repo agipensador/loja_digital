@@ -43,3 +43,11 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Ferramentas de operação (tool/) e chaves — NUNCA commitar chaves
+/tool/node_modules/
+*service-account*.json
+*-admin*.json
+/build/web_*/
+backups/
+ids.txt

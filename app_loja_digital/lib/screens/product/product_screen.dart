@@ -1,4 +1,8 @@
+import 'package:app_loja_digital/helpers/br_format.dart';
+import 'package:app_loja_digital/models/staff_member.dart';
+import 'package:app_loja_digital/common/location_availability.dart';
 import 'package:app_loja_digital/models/cart_manager.dart';
+import 'package:app_loja_digital/models/stores_manager.dart';
 import 'package:app_loja_digital/models/favorites_manager.dart';
 import 'package:app_loja_digital/screens/product/components/product_images_carousel.dart';
 import 'package:app_loja_digital/screens/product/components/size_widget.dart';
@@ -43,7 +47,9 @@ class ProductScreen extends StatelessWidget {
             ),
             Consumer<UserManager>(
               builder: (_, userManager, __) {
-                if (userManager.adminEnabled && !product.deleted) {
+                if ((userManager.can(Perm.productsEdit) ||
+                        userManager.can(Perm.productsDelete)) &&
+                    !product.deleted) {
                   return IconButton(
                     icon: const Icon(Icons.edit),
                     onPressed: () {
@@ -86,7 +92,7 @@ class ProductScreen extends StatelessWidget {
                     ),
                   ),
                   Text(
-                    'R\$ ${product.basePrice.toStringAsFixed(2)}',
+                    Br.money(product.basePrice),
                     style: TextStyle(
                       fontSize: 22.0,
                       fontWeight: FontWeight.bold,
@@ -107,6 +113,8 @@ class ProductScreen extends StatelessWidget {
                     product.description,
                     style: const TextStyle(fontSize: 16),
                   ),
+                  const SizedBox(height: 12),
+                  LocationAvailability(product),
                 ],
               ),
             ),
@@ -130,9 +138,13 @@ class ProductScreen extends StatelessWidget {
                       onPressed: product.selectedSize != null
                           ? () {
                               if (userManager.isLoggedIn) {
-                                context
-                                    .read<CartManager>()
-                                    .addToCart(product);
+                                final locationId = context
+                                    .read<StoresManager>()
+                                    .fulfillingLocationFor(
+                                        product.selectedSize!);
+                                context.read<CartManager>().addToCart(
+                                    product,
+                                    locationId: locationId);
                                 Navigator.of(context).pushNamed('/cart');
                               } else {
                                 Navigator.of(context).pushNamed('/login');

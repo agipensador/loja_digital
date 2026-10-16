@@ -1,14 +1,20 @@
+import 'package:app_loja_digital/helpers/br_format.dart';
 import 'package:app_loja_digital/common/store_image.dart';
 import 'package:app_loja_digital/models/item_size.dart';
 import 'package:app_loja_digital/models/product.dart';
 import 'package:app_loja_digital/models/product_manager.dart';
+import 'package:app_loja_digital/models/stores_manager.dart';
+import 'package:app_loja_digital/models/user_manager.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 enum _StockFilter { all, low, out }
 
 class StockPanelScreen extends StatefulWidget {
-  const StockPanelScreen({super.key});
+  const StockPanelScreen({super.key, this.initialLocationId});
+
+  /// Abre direto numa unidade (ex.: vindo do alerta de estoque baixo).
+  final String? initialLocationId;
 
   @override
   State<StockPanelScreen> createState() => _StockPanelScreenState();
@@ -16,17 +22,47 @@ class StockPanelScreen extends StatefulWidget {
 
 class _StockPanelScreenState extends State<StockPanelScreen> {
   _StockFilter _filter = _StockFilter.all;
+  late String? _locationId = widget.initialLocationId;
 
   @override
   Widget build(BuildContext context) {
+    final stores = context.watch<StoresManager>();
+    final allowed = context.watch<UserManager>().allowedLocations(stores);
+    if (allowed.isEmpty) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Controle de estoque')),
+        body: const Center(child: Text('Sem acesso a nenhuma unidade.')),
+      );
+    }
+    final locationId = allowed.any((l) => l.id == _locationId)
+        ? _locationId!
+        : allowed.first.id!;
+
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: AppBar(title: const Text('Controle de estoque'), centerTitle: true),
+      appBar: AppBar(
+        title: const Text('Estoque'),
+        centerTitle: true,
+        actions: <Widget>[
+          IconButton(
+            tooltip: 'Fornecedores',
+            icon: const Icon(Icons.contacts),
+            onPressed: () => Navigator.of(context).pushNamed('/suppliers'),
+          ),
+          TextButton.icon(
+            style: TextButton.styleFrom(foregroundColor: Colors.white),
+            icon: const Icon(Icons.chat),
+            label: const Text('Pedir reposição'),
+            onPressed: () => Navigator.of(context)
+                .pushNamed('/restock', arguments: locationId),
+          ),
+        ],
+      ),
       body: Consumer<ProductManager>(
         builder: (_, productManager, __) {
           final all = productManager.allProducts;
-          final low = all.where((p) => p.isLowStock).toList();
-          final out = all.where((p) => p.isOutOfStock).toList();
+          final low = all.where((p) => p.isLowStockAt(locationId)).toList();
+          final out = all.where((p) => !p.hasStockAt(locationId)).toList();
 
           List<Product> visible;
           switch (_filter) {
@@ -40,10 +76,28 @@ class _StockPanelScreenState extends State<StockPanelScreen> {
               visible = List.of(all);
           }
           // Menor estoque primeiro: o que está acabando aparece no topo.
-          visible.sort((a, b) => a.totalStock.compareTo(b.totalStock));
+          visible.sort(
+              (a, b) => a.stockAt(locationId).compareTo(b.stockAt(locationId)));
 
           return Column(
             children: <Widget>[
+              if (allowed.length > 1)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+                  child: DropdownButtonFormField<String>(
+                    initialValue: locationId,
+                    decoration: const InputDecoration(
+                      labelText: 'Unidade',
+                      isDense: true,
+                      border: OutlineInputBorder(),
+                    ),
+                    items: allowed
+                        .map((l) => DropdownMenuItem(
+                            value: l.id, child: Text(l.name)))
+                        .toList(),
+                    onChanged: (v) => setState(() => _locationId = v),
+                  ),
+                ),
               _Summary(
                 total: all.length,
                 low: low.length,
@@ -58,6 +112,7 @@ class _StockPanelScreenState extends State<StockPanelScreen> {
                         itemCount: visible.length,
                         itemBuilder: (_, i) => _StockProductTile(
                           visible[i],
+                          locationId: locationId,
                           onChanged: () => setState(() {}),
                         ),
                       ),
@@ -147,8 +202,10 @@ class _Chip extends StatelessWidget {
 }
 
 class _StockProductTile extends StatefulWidget {
-  const _StockProductTile(this.product, {required this.onChanged});
+  const _StockProductTile(this.product,
+      {required this.locationId, required this.onChanged});
   final Product product;
+  final String locationId;
   final VoidCallback onChanged;
 
   @override
@@ -157,10 +214,10 @@ class _StockProductTile extends StatefulWidget {
 
 class _StockProductTileState extends State<_StockProductTile> {
   Product get p => widget.product;
+  String get loc => widget.locationId;
 
   Future<void> _changeStock(ItemSize size, int delta) async {
-    final v = size.stock + delta;
-    size.stock = v < 0 ? 0 : v;
+    size.setStockAt(loc, size.stockAt(loc) + delta);
     setState(() {});
     widget.onChanged();
     await p.updateStock();
@@ -173,10 +230,10 @@ class _StockProductTileState extends State<_StockProductTile> {
   }
 
   Widget _badge() {
-    if (p.isOutOfStock) {
+    if (!p.hasStockAt(loc)) {
       return const _Tag('Esgotado', Colors.red);
     }
-    if (p.isLowStock) {
+    if (p.isLowStockAt(loc)) {
       return const _Tag('Estoque baixo', Colors.orange);
     }
     return const _Tag('OK', Colors.green);
@@ -191,12 +248,12 @@ class _StockProductTileState extends State<_StockProductTile> {
         leading: SizedBox(
           width: 44,
           height: 44,
-          child: StoreImage(p.images.isNotEmpty ? p.images.first : null),
+          child: StoreImage(p.coverThumb),
         ),
         title: Text(p.name),
         subtitle: Row(
           children: <Widget>[
-            Text('Total: ${p.totalStock}'),
+            Text('Total: ${p.stockAt(loc)}'),
             const SizedBox(width: 8),
             _badge(),
           ],
@@ -206,7 +263,7 @@ class _StockProductTileState extends State<_StockProductTile> {
             ListTile(
               dense: true,
               title: Text(size.name.isEmpty ? 'Único' : size.name),
-              subtitle: Text('R\$ ${size.price.toStringAsFixed(2)}'),
+              subtitle: Text(Br.money(size.price)),
               trailing: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: <Widget>[
@@ -217,7 +274,7 @@ class _StockProductTileState extends State<_StockProductTile> {
                   ),
                   SizedBox(
                     width: 32,
-                    child: Text('${size.stock}',
+                    child: Text('${size.stockAt(loc)}',
                         textAlign: TextAlign.center,
                         style: const TextStyle(
                             fontSize: 16, fontWeight: FontWeight.bold)),

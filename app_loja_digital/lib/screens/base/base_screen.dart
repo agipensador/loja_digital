@@ -5,6 +5,7 @@ import 'package:app_loja_digital/screens/home/home_screen.dart';
 import 'package:app_loja_digital/screens/orders/orders_screen.dart';
 import 'package:app_loja_digital/screens/profile/profile_screen.dart';
 import 'package:app_loja_digital/screens/stores/stores_screen.dart';
+import 'package:app_loja_digital/common/update_announcer.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -16,18 +17,21 @@ class BaseScreen extends StatelessWidget {
     final pageController = context.read<PageController>();
 
     // A ordem aqui deve bater com NavPages (usado pelo menu).
-    return PageView(
-      controller: pageController,
-      physics: const NeverScrollableScrollPhysics(),
-      children: const <Widget>[
-        HomeScreen(), // 0 - Início
-        ProductsScreen(), // 1 - Produtos
-        FavoritesScreen(), // 2 - Favoritos
-        ProfileScreen(), // 3 - Perfil
-        OrdersScreen(), // 4 - Meus Pedidos
-        StoresScreen(), // 5 - Lojas
-        AdminOrdersScreen(), // 6 - Pedidos (admin)
-      ],
+    // UpdateAnnouncer: versão nova do app → sugere avisar os clientes.
+    return UpdateAnnouncer(
+      child: PageView(
+        controller: pageController,
+        physics: const NeverScrollableScrollPhysics(),
+        children: const <Widget>[
+          HomeScreen(), // 0 - Início
+          ProductsScreen(), // 1 - Produtos
+          FavoritesScreen(), // 2 - Favoritos
+          ProfileScreen(), // 3 - Perfil
+          OrdersScreen(), // 4 - Meus Pedidos
+          StoresScreen(), // 5 - Lojas
+          AdminOrdersScreen(), // 6 - Pedidos (admin)
+        ],
+      ),
     );
   }
 }

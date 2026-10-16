@@ -14,8 +14,17 @@ import 'package:firebase_storage/firebase_storage.dart';
 class Tenant {
   Tenant._();
 
-  static const String storeId =
+  static const String _buildStoreId =
       String.fromEnvironment('STORE_ID', defaultValue: 'loja_ju');
+
+  static String? _override;
+
+  /// Loja deste build (flavor). Só o painel admin troca em tempo de
+  /// execução ([useStore]); os apps das lojas nunca trocam.
+  static String get storeId => _override ?? _buildStoreId;
+
+  /// Painel da plataforma: passa a ler/escrever a loja [id].
+  static void useStore(String? id) => _override = id;
 
   static FirebaseFirestore get _db => FirebaseFirestore.instance;
 

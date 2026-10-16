@@ -1,3 +1,7 @@
+import 'package:app_loja_digital/common/notify_prompt.dart';
+import 'package:app_loja_digital/models/supplier.dart';
+import 'package:app_loja_digital/models/user_manager.dart';
+import 'package:app_loja_digital/models/staff_member.dart';
 import 'package:app_loja_digital/models/product.dart';
 import 'package:app_loja_digital/models/product_manager.dart';
 import 'package:app_loja_digital/screens/edit_product/components/images_form.dart';
@@ -50,10 +54,28 @@ class _EditProductScreenState extends State<EditProductScreen> {
         title: Text(editing ? 'Editar produto' : 'Criar produto'),
         centerTitle: true,
         actions: <Widget>[
-          if (editing)
+          if (editing && context.watch<UserManager>().can(Perm.productsDelete))
             IconButton(
               icon: const Icon(Icons.delete),
-              onPressed: () {
+              onPressed: () async {
+                final confirmed = await showDialog<bool>(
+                  context: context,
+                  builder: (c) => AlertDialog(
+                    title: const Text('Excluir produto?'),
+                    content: Text('"${product.name}" sai da loja. Pedidos '
+                        'antigos continuam com o histórico.'),
+                    actions: <Widget>[
+                      TextButton(
+                          onPressed: () => Navigator.pop(c, false),
+                          child: const Text('Cancelar')),
+                      TextButton(
+                          onPressed: () => Navigator.pop(c, true),
+                          child: const Text('Excluir',
+                              style: TextStyle(color: Colors.red))),
+                    ],
+                  ),
+                );
+                if (confirmed != true || !context.mounted) return;
                 context.read<ProductManager>().delete(product);
                 Navigator.of(context).pop();
               },
@@ -151,6 +173,67 @@ class _EditProductScreenState extends State<EditProductScreen> {
                     onSaved: (value) => product.description = value ?? '',
                   ),
                   const SizedBox(height: 16),
+                  Consumer<SuppliersManager>(
+                    builder: (_, suppliers, __) {
+                      if (suppliers.suppliers.isEmpty) {
+                        return const SizedBox.shrink();
+                      }
+                      return DropdownButtonFormField<String?>(
+                        initialValue: suppliers.byId(product.supplierId)?.id,
+                        decoration: const InputDecoration(
+                          labelText: 'Fornecedor (reposição pelo WhatsApp)',
+                        ),
+                        items: <DropdownMenuItem<String?>>[
+                          const DropdownMenuItem(
+                              value: null, child: Text('Nenhum')),
+                          for (final s in suppliers.suppliers)
+                            DropdownMenuItem(value: s.id, child: Text(s.name)),
+                        ],
+                        onChanged: (v) => product.supplierId = v,
+                        onSaved: (v) => product.supplierId = v,
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  ExpansionTile(
+                    tilePadding: EdgeInsets.zero,
+                    title: const Text('Peso e medidas (para frete)'),
+                    subtitle: Text(product.hasShippingInfo
+                        ? '${product.weightGrams} g · '
+                            '${product.heightCm}×${product.widthCm}×'
+                            '${product.lengthCm} cm'
+                        : 'Necessário para calcular o frete dos Correios'),
+                    children: <Widget>[
+                      Row(
+                        children: <Widget>[
+                          for (final f in <(String, int, void Function(int))>[
+                            ('Peso (g)', product.weightGrams,
+                                (v) => product.weightGrams = v),
+                            ('Alt. (cm)', product.heightCm,
+                                (v) => product.heightCm = v),
+                            ('Larg. (cm)', product.widthCm,
+                                (v) => product.widthCm = v),
+                            ('Comp. (cm)', product.lengthCm,
+                                (v) => product.lengthCm = v),
+                          ])
+                            Expanded(
+                              child: Padding(
+                                padding: const EdgeInsets.only(right: 6),
+                                child: TextFormField(
+                                  initialValue: f.$2 > 0 ? '${f.$2}' : '',
+                                  keyboardType: TextInputType.number,
+                                  decoration: InputDecoration(
+                                      labelText: f.$1, isDense: true),
+                                  onSaved: (v) =>
+                                      f.$3(int.tryParse(v ?? '') ?? 0),
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
                   SizesForm(product),
                   const SizedBox(height: 20),
                   SizedBox(
@@ -192,10 +275,28 @@ class _EditProductScreenState extends State<EditProductScreen> {
     if (_formKey.currentState!.validate()) {
       _formKey.currentState!.save();
 
+      final wasOutOfStock = widget.editingProduct?.isOutOfStock ?? false;
       await product.save();
 
       if (!mounted) return;
       context.read<ProductManager>().update(product);
+      // Sugere avisar os clientes: produto novo ou de volta ao estoque.
+      if (!editing) {
+        await NotifyPrompt.ask(
+          context,
+          question: 'Deseja enviar uma notificação de novo produto?',
+          title: 'Novidade na loja!',
+          body: '${product.name} acabou de chegar. Confira no app!',
+        );
+      } else if (wasOutOfStock && product.hasStock) {
+        await NotifyPrompt.ask(
+          context,
+          question: 'Produto de volta ao estoque. Avisar os clientes?',
+          title: 'Voltou ao estoque!',
+          body: '${product.name} está disponível de novo. Corra!',
+        );
+      }
+      if (!mounted) return;
       Navigator.of(context).pop();
     }
   }

@@ -14,9 +14,10 @@ class Subscription {
     this.paidUntil,
     this.lastPaymentAt,
     this.lastPaymentMethod = '',
+    this.paidCycles = 0,
   });
 
-  /// Assinatura nova: começa hoje com 60 dias de trial.
+  /// Assinatura nova: começa hoje com o período grátis (PlatformBilling.trialDays).
   factory Subscription.startTrial() {
     final now = DateTime.now();
     return Subscription(
@@ -35,6 +36,7 @@ class Subscription {
       paidUntil: date(map['paidUntil']),
       lastPaymentAt: date(map['lastPaymentAt']),
       lastPaymentMethod: (map['lastPaymentMethod'] ?? '') as String,
+      paidCycles: (map['paidCycles'] ?? 0) as int,
     );
   }
 
@@ -43,6 +45,11 @@ class Subscription {
   DateTime? paidUntil;
   DateTime? lastPaymentAt;
   String lastPaymentMethod;
+
+  /// Quantos ciclos já foram pagos (decide o preço promocional de entrada).
+  int paidCycles;
+
+  num nextPrice(Plan plan) => plan.priceForCycle(paidCycles);
 
   /// Até quando a loja está coberta (trial ou pagamento).
   DateTime get coveredUntil {
@@ -72,13 +79,18 @@ class Subscription {
 
   /// Registra um pagamento (mock hoje; Mercado Pago depois): estende a
   /// cobertura a partir do fim atual (ou de hoje, se já venceu).
-  void registerPayment(Plan plan, String method) {
+  void registerPayment(Plan plan, String method,
+      {BillingPeriod period = BillingPeriod.monthly}) {
     final now = DateTime.now();
     final base = coveredUntil.isAfter(now) ? coveredUntil : now;
-    paidUntil = base.add(plan.cycleDuration);
+    paidUntil = base.add(plan.cycleDuration * period.months);
     lastPaymentAt = now;
     lastPaymentMethod = method;
+    paidCycles += period.months;
   }
+
+  num priceFor(Plan plan, BillingPeriod period) =>
+      plan.priceForPeriod(paidCycles, period);
 
   Map<String, dynamic> toMap() {
     return {
@@ -88,6 +100,7 @@ class Subscription {
       'lastPaymentAt':
           lastPaymentAt == null ? null : Timestamp.fromDate(lastPaymentAt!),
       'lastPaymentMethod': lastPaymentMethod,
+      'paidCycles': paidCycles,
     };
   }
 

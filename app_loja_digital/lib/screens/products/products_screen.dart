@@ -1,3 +1,7 @@
+import 'package:app_loja_digital/models/usage_manager.dart';
+import 'package:app_loja_digital/models/tenant_manager.dart';
+import 'package:app_loja_digital/models/stores_manager.dart';
+import 'package:app_loja_digital/models/staff_member.dart';
 import 'package:app_loja_digital/screens/products/components/product_grid_tile.dart';
 import 'package:app_loja_digital/screens/products/components/search_dialog.dart';
 import 'package:app_loja_digital/models/user_manager.dart';
@@ -78,11 +82,26 @@ class ProductsScreen extends StatelessWidget {
           ),
           Consumer<UserManager>(
             builder: (_, userManager, __) {
-              if (userManager.adminEnabled) {
+              if (userManager.can(Perm.productsCreate)) {
                 return IconButton(
                   icon: const Icon(Icons.add),
                   tooltip: 'Novo produto',
                   onPressed: () {
+                    final plan = context.read<TenantManager>().store?.plan;
+                    final report = plan == null
+                        ? null
+                        : context.read<UsageManager>().report(plan,
+                            context.read<ProductManager>().allProducts.length);
+                    if (report != null && report.capReached) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Sua loja chegou ao teto de uso do '
+                              'plano: novos produtos estão pausados. Veja em '
+                              'Perfil → Assinatura.'),
+                        ),
+                      );
+                      return;
+                    }
                     Navigator.of(context)
                         .pushNamed('/edit_product', arguments: null);
                   },
@@ -93,12 +112,43 @@ class ProductsScreen extends StatelessWidget {
           ),
         ],
       ),
-      body: Consumer<ProductManager>(
-        builder: (_, productManager, __) {
+      body: Consumer2<ProductManager, StoresManager>(
+        builder: (_, productManager, stores, __) {
           final categories = productManager.categories;
-          final filteredProducts = productManager.filteredProducts;
+          final current = stores.currentLocationId;
+          // Produtos da unidade do cliente primeiro; os das outras unidades
+          // continuam visíveis ("disponível em X") para não perder a venda.
+          final filteredProducts = productManager.filteredProducts
+            ..sort((a, b) {
+              final ah = a.hasStockAt(current) ? 0 : 1;
+              final bh = b.hasStockAt(current) ? 0 : 1;
+              return ah.compareTo(bh);
+            });
           return Column(
             children: <Widget>[
+              if (stores.isMultiLocation)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+                  child: Row(
+                    children: <Widget>[
+                      const Icon(Icons.storefront, size: 18),
+                      const SizedBox(width: 6),
+                      const Text('Comprando na loja:'),
+                      const SizedBox(width: 6),
+                      DropdownButton<String>(
+                        value: current,
+                        underline: const SizedBox.shrink(),
+                        items: stores.locations
+                            .map((l) => DropdownMenuItem(
+                                value: l.id, child: Text(l.name)))
+                            .toList(),
+                        onChanged: (v) {
+                          if (v != null) stores.selectLocation(v);
+                        },
+                      ),
+                    ],
+                  ),
+                ),
               if (categories.length > 1)
                 SizedBox(
                   height: 44,

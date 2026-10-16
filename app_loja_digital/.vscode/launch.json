@@ -11,10 +11,10 @@
             "args": ["--dart-define=STORE_ID=loja_ju"]
         },
         {
-            "name": "Loja Val (dev)",
+            "name": "Loja Gi (dev)",
             "request": "launch",
             "type": "dart",
-            "args": ["--dart-define=STORE_ID=loja_val"]
+            "args": ["--dart-define=STORE_ID=loja_gi"]
         },
         {
             "name": "Loja Ju (release)",
@@ -24,11 +24,11 @@
             "args": ["--dart-define=STORE_ID=loja_ju"]
         },
         {
-            "name": "Loja Val (release)",
+            "name": "Loja Gi (release)",
             "request": "launch",
             "type": "dart",
             "flutterMode": "release",
-            "args": ["--dart-define=STORE_ID=loja_val"]
+            "args": ["--dart-define=STORE_ID=loja_gi"]
         }
     ]
 }

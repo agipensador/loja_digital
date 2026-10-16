@@ -1,6 +1,10 @@
+import 'package:app_loja_digital/common/notify_prompt.dart';
+import 'package:app_loja_digital/helpers/br_format.dart';
 import 'package:app_loja_digital/common/picked_image.dart';
 import 'package:app_loja_digital/models/store.dart';
 import 'package:app_loja_digital/models/stores_manager.dart';
+import 'package:app_loja_digital/common/address_form.dart';
+import 'package:app_loja_digital/models/address.dart';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:image_picker/image_picker.dart';
@@ -25,6 +29,25 @@ class _EditStoreScreenState extends State<EditStoreScreen> {
 
   bool _loading = false;
 
+  late final AddressFormController _address = AddressFormController(
+    store.hasStructuredAddress || store.zipCode.isNotEmpty
+        ? Address(
+            zipCode: store.zipCode,
+            street: store.street,
+            number: store.number,
+            district: store.district,
+            city: store.city,
+            state: store.state,
+          )
+        : null,
+  );
+
+  @override
+  void dispose() {
+    _address.dispose();
+    super.dispose();
+  }
+
   Future<void> _pickImage() async {
     final file = await _picker.pickImage(source: ImageSource.gallery);
     if (file != null) setState(() => store.image = file);
@@ -33,11 +56,32 @@ class _EditStoreScreenState extends State<EditStoreScreen> {
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
     _formKey.currentState!.save();
+    final a = _address.build();
+    store
+      ..zipCode = a.zipCode
+      ..street = a.street
+      ..number = a.number
+      ..district = a.district
+      ..city = a.city
+      ..state = a.state;
+    final manager = context.read<StoresManager>();
     setState(() => _loading = true);
     try {
-      await store.save();
+      final isFirst = !editing && manager.stores.isEmpty;
+      await store.save(isFirst: isFirst);
       if (!mounted) return;
       context.read<StoresManager>().update(store);
+      // Nova unidade (não a primeira): vale avisar os clientes da região.
+      if (!editing && !isFirst) {
+        await NotifyPrompt.ask(
+          context,
+          question: 'Nova unidade cadastrada. Avisar os clientes?',
+          title: 'Nova loja: ${store.name}',
+          body: 'Agora também estamos em ${store.city}. Retire seus pedidos '
+              'ou receba mais rápido!',
+        );
+        if (!mounted) return;
+      }
       Navigator.of(context).pop();
     } catch (e) {
       if (mounted) {
@@ -97,16 +141,21 @@ class _EditStoreScreenState extends State<EditStoreScreen> {
                   (v == null || v.trim().length < 2) ? 'Informe o nome' : null,
               onSaved: (v) => store.name = v!.trim(),
             ),
-            TextFormField(
-              initialValue: store.address,
-              decoration: const InputDecoration(
-                  labelText: 'Endereço', helperText: 'Usado para abrir o mapa'),
-              onSaved: (v) => store.address = v?.trim() ?? '',
+            const SizedBox(height: 12),
+            AddressFormFields(_address),
+            const Padding(
+              padding: EdgeInsets.only(top: 4),
+              child: Text(
+                'A cidade/UF define quais clientes esta unidade atende.',
+                style: TextStyle(fontSize: 12, color: Colors.grey),
+              ),
             ),
             TextFormField(
               initialValue: store.phone,
-              decoration: const InputDecoration(labelText: 'Telefone'),
+              decoration: const InputDecoration(
+                  labelText: 'Telefone', hintText: '(00) 00000-0000'),
               keyboardType: TextInputType.phone,
+              inputFormatters: [MaskFormatter.phone],
               onSaved: (v) => store.phone = v?.trim() ?? '',
             ),
             TextFormField(
@@ -124,6 +173,59 @@ class _EditStoreScreenState extends State<EditStoreScreen> {
               value: store.open,
               onChanged: (v) => setState(() => store.open = v),
             ),
+            const Divider(),
+            const Text('Como esta unidade entrega',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Retirada na loja'),
+              value: store.offersPickup,
+              onChanged: (v) => setState(() => store.offersPickup = v),
+            ),
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Entrega própria'),
+              subtitle: const Text('Locais, dias e valor de cada área em '
+                  'Perfil → Zonas de entrega'),
+              value: store.offersOwnDelivery,
+              onChanged: (v) => setState(() => store.offersOwnDelivery = v),
+            ),
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Motoboy (Uber)'),
+              subtitle: const Text('A loja chama o motoboy pelo app'),
+              value: store.offersUber,
+              onChanged: (v) => setState(() => store.offersUber = v),
+            ),
+            if (store.offersUber) ...[
+              _FeeField(
+                label: 'Saída do motoboy',
+                initial: store.uberBaseFee,
+                onSaved: (v) => store.uberBaseFee = v,
+              ),
+              _FeeField(
+                label: 'Valor por km',
+                initial: store.uberPerKm,
+                onSaved: (v) => store.uberPerKm = v,
+              ),
+              _FeeField(
+                label: 'Valor fixo se não der para calcular a distância',
+                initial: store.uberFee,
+                onSaved: (v) => store.uberFee = v,
+              ),
+            ],
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Envio pelos Correios'),
+              value: store.offersShipping,
+              onChanged: (v) => setState(() => store.offersShipping = v),
+            ),
+            if (store.offersShipping)
+              _FeeField(
+                label: 'Valor fixo do envio',
+                initial: store.shippingFee,
+                onSaved: (v) => store.shippingFee = v,
+              ),
             const Divider(),
             Row(
               children: <Widget>[
@@ -188,6 +290,31 @@ class _EditStoreScreenState extends State<EditStoreScreen> {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _FeeField extends StatelessWidget {
+  const _FeeField(
+      {required this.label, required this.initial, required this.onSaved});
+
+  final String label;
+  final num initial;
+  final ValueChanged<num> onSaved;
+
+  @override
+  Widget build(BuildContext context) {
+    return TextFormField(
+      initialValue: Br.moneyInput(initial),
+      decoration: InputDecoration(
+        labelText: label,
+        prefixText: 'R\$ ',
+        helperText: 'Vazio = grátis. O cliente pode ter esse valor '
+            'ajustado se a loja propuser outra entrega.',
+      ),
+      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+      onSaved: (v) =>
+          onSaved(Br.parseMoney(v ?? '')),
     );
   }
 }

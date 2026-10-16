@@ -1,3 +1,4 @@
+import 'package:app_loja_digital/common/store_image.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:flutter/material.dart';
 
@@ -40,17 +41,7 @@ class _ProductImagesCarouselState extends State<ProductImagesCarousel> {
             onPageChanged: (index, _) => setState(() => _current = index),
           ),
           items: widget.images.map((url) {
-            return Image.network(
-              url,
-              fit: BoxFit.cover,
-              width: double.infinity,
-              errorBuilder: (_, __, ___) => Container(
-                color: const Color(0xFFEDEDED),
-                alignment: Alignment.center,
-                child: Icon(Icons.image_outlined,
-                    color: Colors.grey[400], size: 48),
-              ),
-            );
+            return StoreImage(url);
           }).toList(),
         ),
         if (widget.images.length > 1)

@@ -1,0 +1,14 @@
+{
+  "@@locale": "pt",
+  "appOffline": "OPS! O APP {name} ESTÁ FORA DO AR NO MOMENTO. RETORNAMOS EM BREVE.",
+  "@appOffline": {
+    "description": "Tela da loja suspensa",
+    "placeholders": { "name": { "type": "String" } }
+  },
+  "noOrdersWhileOffline": "Enquanto isso, não é possível fazer pedidos.",
+  "teamLogin": "Sou da equipe da loja",
+  "chatTitle": "Atendimento",
+  "chatGreeting": "Olá! Sou o assistente da {store}. Como posso ajudar?",
+  "@chatGreeting": { "placeholders": { "store": { "type": "String" } } },
+  "notificationsTitle": "Notificações"
+}

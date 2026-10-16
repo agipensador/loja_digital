@@ -1,3 +1,5 @@
+import 'package:app_loja_digital/common/store_image.dart';
+import 'package:app_loja_digital/helpers/br_format.dart';
 import 'package:app_loja_digital/models/a2_offer.dart';
 import 'package:app_loja_digital/models/a2_publish_manager.dart';
 import 'package:app_loja_digital/models/product.dart';
@@ -64,8 +66,10 @@ class A2PublishScreen extends StatelessWidget {
 
                     return ListTile(
                       leading: product.images.isNotEmpty
-                          ? Image.network(product.images.first,
-                              width: 48, height: 48, fit: BoxFit.cover)
+                          ? SizedBox(
+                              width: 48,
+                              height: 48,
+                              child: StoreImage(product.coverThumb))
                           : const Icon(Icons.image_not_supported),
                       title: Text(product.name),
                       subtitle: published && offer != null
@@ -80,7 +84,7 @@ class A2PublishScreen extends StatelessWidget {
                                         color: _statusColor(offer.status))),
                               ],
                             )
-                          : Text('R\$ ${product.basePrice.toStringAsFixed(2)}'),
+                          : Text(Br.money(product.basePrice)),
                       trailing: Switch(
                         value: published,
                         onChanged: canToggleOn

@@ -1,7 +1,14 @@
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
-/// Imagem de rede com placeholder elegante em caso de erro/carregamento.
-/// Mantém o mesmo espaço do item (o link/toque por cima continua funcionando).
+/// Imagem de rede com placeholder em caso de erro/carregamento.
+///
+/// - Celular: cache em disco (`cached_network_image`) — cada foto é baixada
+///   uma vez e reaproveitada nas próximas aberturas.
+/// - Web: o navegador já cacheia (as fotos sobem com Cache-Control de 1 ano)
+///   e o modo `fallback` usa a tag <img> para fotos de outros sites (ex.:
+///   links da Shopee), que o Flutter Web não consegue ler por CORS.
 class StoreImage extends StatelessWidget {
   const StoreImage(this.url, {super.key, this.fit = BoxFit.cover});
 
@@ -10,18 +17,30 @@ class StoreImage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (url == null || url!.isEmpty) return const _Placeholder();
-    return Image.network(
-      url!,
+    final u = url;
+    if (u == null || u.isEmpty) return const _Placeholder();
+
+    if (kIsWeb) {
+      return Image.network(
+        u,
+        fit: fit,
+        width: double.infinity,
+        height: double.infinity,
+        gaplessPlayback: true,
+        webHtmlElementStrategy: WebHtmlElementStrategy.fallback,
+        errorBuilder: (_, __, ___) => const _Placeholder(),
+        loadingBuilder: (context, child, progress) =>
+            progress == null ? child : const _Placeholder(loading: true),
+      );
+    }
+
+    return CachedNetworkImage(
+      imageUrl: u,
       fit: fit,
       width: double.infinity,
       height: double.infinity,
-      gaplessPlayback: true,
-      errorBuilder: (_, __, ___) => const _Placeholder(),
-      loadingBuilder: (context, child, progress) {
-        if (progress == null) return child;
-        return const _Placeholder(loading: true);
-      },
+      placeholder: (_, __) => const _Placeholder(loading: true),
+      errorWidget: (_, __, ___) => const _Placeholder(),
     );
   }
 }

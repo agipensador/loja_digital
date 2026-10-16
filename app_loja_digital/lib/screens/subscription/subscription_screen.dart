@@ -1,3 +1,9 @@
+import 'package:app_loja_digital/core/platform_contact.dart';
+import 'package:app_loja_digital/screens/subscription/usage_card.dart';
+import 'package:flutter/foundation.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:app_loja_digital/models/stores_manager.dart';
 import 'package:app_loja_digital/models/plan.dart';
 import 'package:app_loja_digital/models/subscription.dart';
 import 'package:app_loja_digital/models/tenant_manager.dart';
@@ -24,7 +30,8 @@ class SubscriptionScreen extends StatelessWidget {
 
   Future<void> _pay(BuildContext context, String method) async {
     final tenant = context.read<TenantManager>();
-    final result = await tenant.paySubscription(method);
+    final result =
+        await tenant.paySubscription(method, period: tenant.selectedPeriod);
     if (!context.mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -87,7 +94,10 @@ class SubscriptionScreen extends StatelessWidget {
                         ],
                       ),
                       const SizedBox(height: 8),
-                      Text(store.plan.priceLabel,
+                      Text(
+                          'Próxima mensalidade: '
+                          '${Plan.money(sub.nextPrice(store.plan))}'
+                          ' · ${store.plan.introLabel}',
                           style: TextStyle(
                               color: primaryColor,
                               fontWeight: FontWeight.w600)),
@@ -111,8 +121,58 @@ class SubscriptionScreen extends StatelessWidget {
                 ),
               ),
 
-              // ---- Pagar ----
               const SizedBox(height: 8),
+              const UsageCard(),
+
+              // ---- Pagar ----
+              const SizedBox(height: 12),
+              const Text('Como quer pagar',
+                  style: TextStyle(fontWeight: FontWeight.bold)),
+              const SizedBox(height: 8),
+              for (final period in BillingPeriod.values)
+                RadioListTile<BillingPeriod>(
+                  contentPadding: EdgeInsets.zero,
+                  dense: true,
+                  value: period,
+                  groupValue: tenant.selectedPeriod,
+                  onChanged: (p) => tenant.selectPeriod(p!),
+                  title: Text(period.label),
+                  secondary: Text(
+                    Plan.money(sub.priceFor(store.plan, period)),
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  subtitle: period == BillingPeriod.monthly
+                      ? null
+                      : Text('${period.months} meses de uma vez'),
+                ),
+              const SizedBox(height: 8),
+              FilledButton.icon(
+                style: FilledButton.styleFrom(
+                  backgroundColor: const Color(0xFF25D366),
+                  minimumSize: const Size.fromHeight(48),
+                ),
+                icon: const FaIcon(FontAwesomeIcons.whatsapp),
+                label: Text('Quero o plano ${store.plan.name}: '
+                    'falar com a Inforizz'),
+                onPressed: () => launchUrl(
+                  Uri.parse(PlatformContact.support(
+                      'Olá, Inforizz! Quero este plano: *${store.plan.name}* '
+                      '(${Plan.money(sub.priceFor(store.plan, tenant.selectedPeriod))}'
+                      ' ${tenant.selectedPeriod.label.toLowerCase()}).\n'
+                      'Loja: ${store.name} (${store.id})')),
+                  mode: LaunchMode.externalApplication,
+                ),
+              ),
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 8),
+                child: Text(
+                  'Enquanto o pagamento pelo app não é liberado, a assinatura '
+                  'é feita pelo WhatsApp da Inforizz (Pix).',
+                  style: TextStyle(color: Colors.grey, fontSize: 12),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+              if (kDebugMode)
               Row(
                 children: <Widget>[
                   Expanded(
@@ -143,14 +203,40 @@ class SubscriptionScreen extends StatelessWidget {
                   ),
                 ],
               ),
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 8),
-                child: Text(
-                  'Pagamento simulado nesta fase — o Mercado Pago (Pix e '
-                  'cartão de verdade) entra com o backend.',
-                  style: TextStyle(color: Colors.grey, fontSize: 12),
-                  textAlign: TextAlign.center,
+              if (kDebugMode)
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 8),
+                  child: Text(
+                    'Pagamento simulado (só em desenvolvimento).',
+                    style: TextStyle(color: Colors.grey, fontSize: 12),
+                    textAlign: TextAlign.center,
+                  ),
                 ),
+
+              // ---- Taxa de serviço ----
+              Card(
+                child: SwitchListTile(
+                  title: Text('Repassar a taxa de serviço '
+                      '(${Plan.money(store.serviceFee.amount)}) ao cliente'),
+                  subtitle: Text(
+                    store.serviceFee.paidBy == ServiceFeePayer.customer
+                        ? 'O cliente vê a taxa somada no total do pedido.'
+                        : 'A loja absorve a taxa: ela é descontada do valor '
+                            'que você recebe, junto com a tarifa do Mercado '
+                            'Pago.',
+                  ),
+                  value: store.serviceFee.paidBy == ServiceFeePayer.customer,
+                  onChanged: (v) => tenant.setServiceFeePayer(
+                      v ? ServiceFeePayer.customer : ServiceFeePayer.store),
+                ),
+              ),
+
+              TextButton.icon(
+                icon: const Icon(Icons.description_outlined),
+                label: const Text('Termos para Lojistas (planos, taxas e '
+                    'limites de uso)'),
+                onPressed: () =>
+                    Navigator.of(context).pushNamed('/store_terms'),
               ),
 
               // ---- Planos ----
@@ -169,15 +255,15 @@ class SubscriptionScreen extends StatelessWidget {
                   ),
                   child: ListTile(
                     leading: Icon(
-                      plan.includesApp
-                          ? Icons.smartphone
-                          : Icons.language,
+                      plan.maxLocations > 1
+                          ? Icons.store_mall_directory
+                          : Icons.storefront,
                       color: primaryColor,
                     ),
                     title: Row(
                       children: <Widget>[
                         Flexible(child: Text(plan.name)),
-                        if (plan.promo) ...[
+                        if (plan.hasIntro) ...[
                           const SizedBox(width: 6),
                           const Chip(
                             label: Text('PROMO',
@@ -190,14 +276,20 @@ class SubscriptionScreen extends StatelessWidget {
                         ],
                       ],
                     ),
-                    subtitle: Text('${plan.priceLabel}\n${plan.description}'),
+                    subtitle: Text('${plan.introLabel}\n${plan.description}'),
                     isThreeLine: true,
                     trailing: plan.id == store.planId
                         ? Icon(Icons.check_circle, color: primaryColor)
                         : TextButton(
-                            onPressed: () async {
-                              await tenant.changePlan(plan.id);
-                            },
+                            // Não dá para cair num plano com menos lojas do
+                            // que a empresa já tem cadastradas.
+                            onPressed: context
+                                        .watch<StoresManager>()
+                                        .stores
+                                        .length >
+                                    plan.maxLocations
+                                ? null
+                                : () => tenant.changePlan(plan.id),
                             child: const Text('Escolher'),
                           ),
                   ),

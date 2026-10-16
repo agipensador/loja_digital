@@ -1,0 +1,23 @@
+# Splash nativa igual para TODAS as lojas (flavors): tela branca com
+# "development by inforizz" pequeno embaixo.
+# Regenerar depois de mudar: dart run flutter_native_splash:create
+# (na web, o web/index.html remove a splash no evento flutter-first-frame;
+#  confira que esse script continua lá depois de regenerar)
+flutter_native_splash:
+  color: "#FFFFFF"
+  color_dark: "#FFFFFF"
+  branding: assets/splash/branding.png
+  branding_dark: assets/splash/branding.png
+  branding_mode: bottom
+  android_12:
+    color: "#FFFFFF"
+    color_dark: "#FFFFFF"
+    image_dark: assets/splash/blank.png
+    branding_dark: assets/splash/branding.png
+    # Imagem transparente: no Android 12+ esconde o ícone do app no centro.
+    image: assets/splash/blank.png
+    branding: assets/splash/branding.png
+  android: true
+  ios: true
+  web: true
+  fullscreen: false

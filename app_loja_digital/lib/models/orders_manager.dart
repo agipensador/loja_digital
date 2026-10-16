@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:app_loja_digital/core/tenant.dart';
 import 'package:app_loja_digital/models/order.dart';
+import 'package:app_loja_digital/models/staff_member.dart';
 import 'package:app_loja_digital/models/user_manager.dart';
 import 'package:cloud_firestore/cloud_firestore.dart' hide Order;
 import 'package:flutter/foundation.dart';
@@ -19,6 +20,7 @@ class OrdersManager extends ChangeNotifier {
   final Set<Status> statusFilter = {
     Status.preparing,
     Status.transporting,
+    Status.readyForPickup,
   };
 
   String _search = '';
@@ -45,9 +47,25 @@ class OrdersManager extends ChangeNotifier {
 
   StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _subscription;
 
+  UserManager? _userManager;
+  String? _scope;
+
   OrdersManager updateUser(UserManager userManager) {
-    userId = userManager.user?.id;
-    _admin = userManager.adminEnabled;
+    final newUid = userManager.user?.id;
+    final newAdmin = userManager.can(Perm.orders);
+    final newScope = userManager.restrictedLocationIds?.join(',');
+    _userManager = userManager;
+    // UserManager notifica por vários motivos; só reinscreve se mudou algo.
+    if (newUid == userId &&
+        newAdmin == _admin &&
+        newScope == _scope &&
+        _subscription != null) {
+      notifyListeners();
+      return this;
+    }
+    userId = newUid;
+    _admin = newAdmin;
+    _scope = newScope;
 
     orders.clear();
     _subscription?.cancel();
@@ -63,8 +81,12 @@ class OrdersManager extends ChangeNotifier {
 
   void _listenToOrders() {
     Query<Map<String, dynamic>> query = Tenant.col('orders');
+    final restricted = _userManager?.restrictedLocationIds;
     if (!_admin) {
       query = query.where('user', isEqualTo: userId);
+    } else if (restricted != null) {
+      // Funcionário de unidades específicas: as rules exigem este filtro.
+      query = query.where('locationId', whereIn: restricted);
     }
 
     _subscription = query.snapshots().listen((event) {
@@ -84,8 +106,13 @@ class OrdersManager extends ChangeNotifier {
       .where((o) => o.userId == userId && _matchesSearch(o))
       .toList();
 
+  /// Pedidos que a equipe pode ver: funcionário só das unidades dele.
+  List<Order> get _teamOrders => orders
+      .where((o) => _userManager?.worksAt(o.locationId) ?? false)
+      .toList();
+
   /// Lista aplicada aos filtros de status e busca (usada no painel admin).
-  List<Order> get filteredOrders => orders
+  List<Order> get filteredOrders => _teamOrders
       .where((o) => statusFilter.contains(o.status) && _matchesSearch(o))
       .toList();
 
@@ -97,6 +124,31 @@ class OrdersManager extends ChangeNotifier {
     }
     notifyListeners();
   }
+
+  /// Pedidos NÃO cancelados criados dentro do mês de [month] (ano+mês).
+  /// Usado pelo relatório financeiro do admin. Cálculo on-the-fly a partir
+  /// dos pedidos já carregados em memória — se o histórico da loja crescer
+  /// muito, trocar por query paginada por mês
+  /// (`where('date', isGreaterThanOrEqualTo: ...)`).
+  List<Order> ordersForMonth(DateTime month) {
+    return _teamOrders.where((o) {
+      final date = o.date?.toDate();
+      if (date == null || o.status == Status.canceled) return false;
+      return date.year == month.year && date.month == month.month;
+    }).toList();
+  }
+
+  /// Receita da LOJA: produtos + frete. A taxa de serviço é da plataforma.
+  num monthRevenue(DateTime month) => ordersForMonth(month)
+      .fold<num>(0, (total, o) => total + o.productsPrice + o.deliveryPrice);
+
+  num monthProductsRevenue(DateTime month) => ordersForMonth(month)
+      .fold<num>(0, (total, o) => total + o.productsPrice);
+
+  num monthDeliveryRevenue(DateTime month) => ordersForMonth(month)
+      .fold<num>(0, (total, o) => total + o.deliveryPrice);
+
+  int monthOrderCount(DateTime month) => ordersForMonth(month).length;
 
   @override
   void dispose() {

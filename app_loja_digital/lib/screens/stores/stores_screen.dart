@@ -1,3 +1,5 @@
+import 'package:app_loja_digital/models/plan.dart';
+import 'package:app_loja_digital/models/tenant_manager.dart';
 import 'package:app_loja_digital/common/custom_drawer/custom_drawer.dart';
 import 'package:app_loja_digital/common/message_text.dart';
 import 'package:app_loja_digital/models/store.dart';
@@ -20,12 +22,28 @@ class StoresScreen extends StatelessWidget {
         actions: <Widget>[
           Consumer<UserManager>(
             builder: (_, userManager, __) {
-              if (userManager.adminEnabled) {
+              // Nova unidade: só o dono, e dentro do limite do plano.
+              final tenant = context.watch<TenantManager>();
+              final stores = context.watch<StoresManager>().stores;
+              final limit = tenant.store?.plan.maxLocations ?? 1;
+              if (userManager.masterEnabled) {
                 return IconButton(
                   icon: const Icon(Icons.add),
-                  tooltip: 'Nova loja',
-                  onPressed: () => Navigator.of(context)
-                      .pushNamed('/edit_store', arguments: null),
+                  tooltip: 'Nova unidade',
+                  onPressed: () {
+                    if (stores.length >= limit) {
+                      final next = PlanCatalog.forLocations(stores.length + 1);
+                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                        content: Text(next == null
+                            ? 'O limite da plataforma é de 5 unidades.'
+                            : 'Seu plano permite $limit unidade(s). Mude para '
+                                'o ${next.name} em Perfil → Assinatura.'),
+                      ));
+                      return;
+                    }
+                    Navigator.of(context)
+                        .pushNamed('/edit_store', arguments: null);
+                  },
                 );
               }
               return const SizedBox.shrink();

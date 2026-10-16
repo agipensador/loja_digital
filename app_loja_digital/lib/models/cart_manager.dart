@@ -1,11 +1,12 @@
 import 'package:app_loja_digital/core/tenant.dart';
 import 'package:app_loja_digital/models/address.dart';
 import 'package:app_loja_digital/models/cart_product.dart';
+import 'package:app_loja_digital/models/delivery_option.dart';
+import 'package:app_loja_digital/models/item_size.dart';
 import 'package:app_loja_digital/models/order.dart';
 import 'package:app_loja_digital/models/plan.dart';
 import 'package:app_loja_digital/models/product.dart';
 import 'package:app_loja_digital/models/user_manager.dart';
-import 'package:app_loja_digital/services/cep_service.dart';
 import 'package:cloud_firestore/cloud_firestore.dart' hide Order;
 import 'package:flutter/foundation.dart';
 
@@ -13,7 +14,6 @@ class CartManager extends ChangeNotifier {
   CartManager();
 
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final CepService _cepService = CepService();
 
   final List<CartProduct> items = [];
 
@@ -23,7 +23,29 @@ class CartManager extends ChangeNotifier {
   Address? address;
   Address? get deliveryAddress => address;
 
-  num deliveryPrice = 0;
+  /// Forma de receber escolhida pelo cliente no checkout (retirada, entrega
+  /// da loja, Uber, Correios). A loja pode propor outra depois.
+  DeliveryOption? deliveryOption;
+
+  num get deliveryPrice => deliveryOption?.fee ?? 0;
+
+  /// Data preferida pelo cliente (entrega própria); a loja define a final.
+  DateTime? selectedDeliveryDate;
+
+  /// Taxa da plataforma desta loja (valor e quem paga) — vem do TenantManager.
+  ServiceFeeConfig serviceFeeConfig = const ServiceFeeConfig();
+
+  void selectDeliveryOption(DeliveryOption? option) {
+    deliveryOption = option;
+    final dates = option?.zone?.nextDates(count: 1) ?? [];
+    selectedDeliveryDate = dates.isEmpty ? null : dates.first;
+    notifyListeners();
+  }
+
+  void setSelectedDeliveryDate(DateTime date) {
+    selectedDeliveryDate = date;
+    notifyListeners();
+  }
 
   /// Atualiza usuário (chamado pelo ProxyProvider / ChangeNotifierProxyProvider)
   /// Recebe o UserManager e tenta extrair um id (compatível com diferentes implementações).
@@ -35,7 +57,7 @@ class CartManager extends ChangeNotifier {
     _userId = uid;
     items.clear();
     address = null;
-    deliveryPrice = 0;
+    deliveryOption = null;
 
     if (_userId != null) {
       _loadCartItems();
@@ -76,9 +98,12 @@ class CartManager extends ChangeNotifier {
 
   num get subtotalPrice => productsPrice;
 
-  /// Taxa de serviço da plataforma (R$ 1,99 por pedido), paga pelo cliente.
-  /// Cobre os custos de transação — ver PlatformBilling.
-  num get serviceFee => items.isEmpty ? 0 : PlatformBilling.serviceFee;
+  /// Parte da taxa da plataforma que o CLIENTE paga (0 quando a loja
+  /// absorve — padrão). A plataforma sempre recebe [platformFee] via split.
+  num get serviceFee =>
+      items.isEmpty ? 0 : serviceFeeConfig.chargedToCustomer;
+
+  num get platformFee => items.isEmpty ? 0 : serviceFeeConfig.amount;
 
   num get totalPrice => productsPrice + deliveryPrice + serviceFee;
 
@@ -91,53 +116,33 @@ class CartManager extends ChangeNotifier {
     return true;
   }
 
-  bool get isAddressValid => address != null && deliveryPrice > 0;
+  bool get isAddressValid => address != null;
+
+  bool get isDeliveryChosen => deliveryOption != null;
 
   // ---------------------------------------------------------------------------
   // Endereço / entrega
   // ---------------------------------------------------------------------------
 
-  Future<void> getAddress(String cep) async {
-    final Address fetched = await _cepService.getAddressFromCep(cep);
-    address = fetched;
-    _calculateDelivery();
-    notifyListeners();
-  }
-
+  /// Novo endereço invalida a forma de entrega (as opções dependem dele).
   void setAddress(Address value) {
     address = value;
-    _calculateDelivery();
-    notifyListeners();
+    selectDeliveryOption(null);
   }
 
   void removeAddress() {
     address = null;
-    deliveryPrice = 0;
-    notifyListeners();
+    selectDeliveryOption(null);
   }
 
-  /// Cálculo simples e determinístico de frete a partir da região do CEP.
-  /// (Loja base em São Paulo capital — prefixo de CEP "0".)
-  void _calculateDelivery() {
-    if (address == null || address!.zipCode.isEmpty) {
-      deliveryPrice = 0;
-      return;
-    }
-    const int storeRegion = 0;
-    final int region =
-        int.tryParse(address!.zipCode.substring(0, 1)) ?? storeRegion;
-    final double distanceFee = (region - storeRegion).abs() * 1.87;
-    final double base = 5.97;
-    deliveryPrice = double.parse((base + distanceFee).toStringAsFixed(2));
-  }
-
-  Future<void> addToCart(Product product) async {
+  Future<void> addToCart(Product product, {required String locationId}) async {
     if (_userId == null) {
       throw StateError('Usuário não logado');
     }
 
     try {
-      final existing = items.firstWhere((p) => p.stackable(product));
+      final existing =
+          items.firstWhere((p) => p.stackable(product, locationId));
       existing.increment();
       notifyListeners();
 
@@ -149,7 +154,8 @@ class CartManager extends ChangeNotifier {
       }
     } catch (e) {
       // não encontrou -> cria novo
-      final cartProduct = CartProduct.fromProduct(product);
+      final cartProduct =
+          CartProduct.fromProduct(product, locationId: locationId);
       final docRef = await _userCartRef().add(cartProduct.toCartItemMap());
       cartProduct.id = docRef.id;
       items.add(cartProduct);
@@ -227,20 +233,19 @@ class CartManager extends ChangeNotifier {
                 .map((e) => Map<String, dynamic>.from(e as Map)));
 
         for (final cp in entry.value) {
-          final size = sizes.firstWhere(
-            (s) => s['name'] == cp.size,
-            orElse: () => <String, dynamic>{},
-          );
-          if (size.isEmpty) {
+          final index = sizes.indexWhere((s) => s['name'] == cp.size);
+          if (index < 0) {
             throw CheckoutException(
                 'Tamanho "${cp.size}" indisponível para ${cp.product?.name}');
           }
-          final int stock = (size['stock'] ?? 0) as int;
+          final size = ItemSize.fromMap(sizes[index]);
+          final int stock = size.stockAt(cp.locationId);
           if (stock < cp.quantity) {
             throw CheckoutException(
                 'Estoque insuficiente para ${cp.product?.name} (${cp.size})');
           }
-          size['stock'] = stock - cp.quantity;
+          size.setStockAt(cp.locationId, stock - cp.quantity);
+          sizes[index] = size.toMap();
         }
         newSizes[entry.key] = sizes;
       }
@@ -251,7 +256,8 @@ class CartManager extends ChangeNotifier {
 
       // ---- ESCRITAS ----
       for (final e in newSizes.entries) {
-        tx.update(Tenant.col('products').doc(e.key), {'sizes': e.value});
+        tx.update(Tenant.col('products').doc(e.key),
+            {'sizes': e.value, 'updatedAt': FieldValue.serverTimestamp()});
       }
       tx.set(counterRef, {'current': nextId});
 
@@ -262,7 +268,9 @@ class CartManager extends ChangeNotifier {
     // Reflete a baixa também nos objetos em memória.
     for (final cp in items) {
       final size = cp.itemSize;
-      if (size != null) size.stock -= cp.quantity;
+      if (size != null) {
+        size.setStockAt(cp.locationId, size.stockAt(cp.locationId) - cp.quantity);
+      }
     }
 
     await clear();
@@ -278,7 +286,8 @@ class CartManager extends ChangeNotifier {
     }
     items.clear();
     address = null;
-    deliveryPrice = 0;
+    deliveryOption = null;
+    selectedDeliveryDate = null;
     notifyListeners();
   }
 }

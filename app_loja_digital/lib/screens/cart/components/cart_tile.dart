@@ -1,3 +1,5 @@
+import 'package:app_loja_digital/common/store_image.dart';
+import 'package:app_loja_digital/helpers/br_format.dart';
 import 'package:app_loja_digital/common/custom_icon_button.dart';
 import 'package:flutter/material.dart';
 import 'package:app_loja_digital/models/cart_product.dart';
@@ -28,10 +30,7 @@ class CartTile extends StatelessWidget {
                       child: const Center(child: CircularProgressIndicator()),
                     )
                   : (cartProduct.product!.images.isNotEmpty
-                      ? Image.network(
-                          cartProduct.product!.images.first,
-                          fit: BoxFit.cover,
-                        )
+                      ? StoreImage(cartProduct.product!.coverThumb)
                       : Container(
                           color: Colors.grey[200],
                           child: const Icon(Icons.image_not_supported),
@@ -57,7 +56,7 @@ class CartTile extends StatelessWidget {
                     ),
                     const SizedBox(height: 6),
                     Text(
-                      'R\$ ${cartProduct.unitPrice.toStringAsFixed(2)}',
+                      Br.money(cartProduct.unitPrice),
                       style: TextStyle(
                         color: Theme.of(context).primaryColor,
                         fontSize: 16.0,

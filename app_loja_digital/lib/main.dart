@@ -1,7 +1,26 @@
+import 'package:app_loja_digital/screens/chat/chat_screen.dart';
+import 'package:app_loja_digital/models/campaign.dart';
+import 'package:app_loja_digital/screens/start_store/start_store_screen.dart';
+import 'package:app_loja_digital/screens/notifications/compose_campaign_screen.dart';
+import 'package:app_loja_digital/screens/notifications/notifications_screen.dart';
+import 'package:intl/intl.dart';
+import 'package:app_loja_digital/l10n/app_localizations.dart';
+import 'package:app_loja_digital/screens/import_catalog/import_catalog_screen.dart';
+import 'package:app_loja_digital/common/store_gate.dart';
+import 'package:app_loja_digital/models/usage_manager.dart';
+import 'package:app_loja_digital/services/usage_service.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart' as fb;
+import 'package:firebase_storage/firebase_storage.dart';
+import 'package:app_loja_digital/models/supplier.dart';
+import 'package:app_loja_digital/screens/suppliers/restock_screen.dart';
+import 'package:app_loja_digital/screens/suppliers/suppliers_screen.dart';
 import 'package:app_loja_digital/models/a2_publish_manager.dart';
 import 'package:app_loja_digital/models/address_manager.dart';
 import 'package:app_loja_digital/models/cart_manager.dart';
+import 'package:app_loja_digital/models/delivery_zones_manager.dart';
 import 'package:app_loja_digital/screens/addresses/addresses_screen.dart';
+import 'package:app_loja_digital/screens/delivery_zones/delivery_zones_screen.dart';
 import 'package:app_loja_digital/models/favorites_manager.dart';
 import 'package:app_loja_digital/models/home_manager.dart';
 import 'package:app_loja_digital/screens/a2_publish/a2_publish_screen.dart';
@@ -32,6 +51,9 @@ import 'package:app_loja_digital/screens/checkout/checkout_screen.dart';
 import 'package:app_loja_digital/models/product.dart';
 import 'package:app_loja_digital/screens/product/product_screen.dart';
 import 'package:app_loja_digital/screens/edit_product/edit_product_screen.dart';
+import 'package:app_loja_digital/screens/legal/legal_screen.dart';
+import 'package:app_loja_digital/screens/mp_connect/mp_connect_screen.dart';
+import 'package:app_loja_digital/screens/reports/reports_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:app_loja_digital/models/page_manager.dart';
@@ -43,6 +65,29 @@ void main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+
+  // Cache local do Firestore também na web (no mobile já vem ligado): é o
+  // que permite a sincronização incremental do catálogo.
+  FirebaseFirestore.instance.settings = const Settings(
+    persistenceEnabled: true,
+    cacheSizeBytes: 100 * 1024 * 1024,
+  );
+
+  // Teste local sem tocar no Firebase real:
+  // firebase emulators:start  +  flutter run --dart-define=USE_EMULATORS=true
+  const useEmulators = bool.fromEnvironment('USE_EMULATORS');
+  if (useEmulators) {
+    FirebaseFirestore.instance.useFirestoreEmulator('localhost', 8080);
+    await fb.FirebaseAuth.instance.useAuthEmulator('localhost', 9099);
+    await FirebaseStorage.instance.useStorageEmulator('localhost', 9199);
+  }
+
+  // E-mails do Firebase (confirmar e-mail, trocar senha) em português.
+  await fb.FirebaseAuth.instance.setLanguageCode('pt-BR');
+
+  // Conta a visita (medidor do plano) sem atrasar a abertura.
+  Intl.defaultLocale = 'pt_BR';
+  UsageService.recordVisit();
 
   runApp(
     MultiProvider(
@@ -100,12 +145,28 @@ void main() async {
           create: (_) => A2PublishManager(),
         ),
 
+        // DeliveryZonesManager (zonas de entrega própria por bairro/dia)
+        ChangeNotifierProvider<DeliveryZonesManager>(
+          create: (_) => DeliveryZonesManager(),
+        ),
+
+        // Fornecedores (pedido de reposição pelo WhatsApp)
+        ChangeNotifierProvider<SuppliersManager>(
+          create: (_) => SuppliersManager(),
+        ),
+
         // CartManager depende do UserManager -> ProxyProvider
         ChangeNotifierProxyProvider<UserManager, CartManager>(
           create: (_) => CartManager(),
           update: (_, userManager, cartManager) =>
               cartManager!..updateUser(userManager),
           lazy: false,
+        ),
+
+        // Uso do mês (visitas/fotos) — medidor do plano, só para a equipe
+        ChangeNotifierProxyProvider<UserManager, UsageManager>(
+          create: (_) => UsageManager(),
+          update: (_, userManager, usage) => usage!..updateUser(userManager),
         ),
 
         // OrdersManager depende do UserManager
@@ -146,6 +207,8 @@ void main() async {
   );
 }
 
+final _navigatorKey = GlobalKey<NavigatorState>();
+
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
@@ -170,6 +233,14 @@ class MyApp extends StatelessWidget {
       ),
       // '/base' como initialRoute fazia o Flutter empilhar '/' E '/base'
       // (duas BaseScreen com o mesmo PageController -> troca de telas quebrava).
+      navigatorKey: _navigatorKey,
+      // i18n: pt-BR é o padrão; novos idiomas entram em lib/l10n/app_*.arb.
+      locale: const Locale('pt'),
+      supportedLocales: AppLocalizations.supportedLocales,
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      // Loja suspensa: cliente vê "fora do ar"; equipe entra para pagar.
+      builder: (context, child) =>
+          StoreGate(navigatorKey: _navigatorKey, child: child!),
       initialRoute: '/',
       onGenerateRoute: (settings) {
         switch (settings.name) {
@@ -214,7 +285,38 @@ class MyApp extends StatelessWidget {
             );
           case '/stock':
             return MaterialPageRoute(
-              builder: (_) => const StockPanelScreen(),
+              builder: (_) => StockPanelScreen(
+                  initialLocationId: settings.arguments as String?),
+            );
+          case '/notifications':
+            return MaterialPageRoute(
+              builder: (_) => const NotificationsScreen(),
+            );
+          case '/compose_campaign':
+            return MaterialPageRoute(
+              builder: (_) =>
+                  ComposeCampaignScreen(draft: settings.arguments as Campaign?),
+            );
+          case '/chat':
+            return MaterialPageRoute(
+              builder: (_) => const ChatScreen(),
+            );
+          case '/start_store':
+            return MaterialPageRoute(
+              builder: (_) =>
+                  StartStoreScreen(planId: settings.arguments as String?),
+            );
+          case '/import_catalog':
+            return MaterialPageRoute(
+              builder: (_) => const ImportCatalogScreen(),
+            );
+          case '/suppliers':
+            return MaterialPageRoute(
+              builder: (_) => const SuppliersScreen(),
+            );
+          case '/restock':
+            return MaterialPageRoute(
+              builder: (_) => RestockScreen(settings.arguments! as String),
             );
           case '/appearance':
             return MaterialPageRoute(
@@ -235,6 +337,30 @@ class MyApp extends StatelessWidget {
           case '/team':
             return MaterialPageRoute(
               builder: (_) => const TeamScreen(),
+            );
+          case '/terms':
+            return MaterialPageRoute(
+              builder: (_) => const LegalScreen(LegalDocument.terms),
+            );
+          case '/privacy':
+            return MaterialPageRoute(
+              builder: (_) => const LegalScreen(LegalDocument.privacy),
+            );
+          case '/store_terms':
+            return MaterialPageRoute(
+              builder: (_) => const LegalScreen(LegalDocument.storeTerms),
+            );
+          case '/delivery_zones':
+            return MaterialPageRoute(
+              builder: (_) => const DeliveryZonesScreen(),
+            );
+          case '/reports':
+            return MaterialPageRoute(
+              builder: (_) => const ReportsScreen(),
+            );
+          case '/mp_connect':
+            return MaterialPageRoute(
+              builder: (_) => const MpConnectScreen(),
             );
           case '/base':
           default:

@@ -1,3 +1,5 @@
+import 'package:app_loja_digital/helpers/br_format.dart';
+
 class Address {
   Address({
     this.street = '',
@@ -42,6 +44,6 @@ class Address {
   @override
   String toString() {
     return '$street, $number${complement.isNotEmpty ? ' - $complement' : ''} - '
-        '$district, $city/$state - $zipCode';
+        '$district, $city/$state - ${Br.cep(zipCode)}';
   }
 }

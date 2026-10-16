@@ -4,9 +4,14 @@ import 'package:app_loja_digital/models/user.dart';
 import 'package:app_loja_digital/models/user_manager.dart';
 import 'package:provider/provider.dart';
 
-class SignupScreen extends StatelessWidget {
+class SignupScreen extends StatefulWidget {
   SignupScreen({super.key});
 
+  @override
+  State<SignupScreen> createState() => _SignupScreenState();
+}
+
+class _SignupScreenState extends State<SignupScreen> {
   final GlobalKey<FormState> formKey = GlobalKey<FormState>();
 
   final User user = User(
@@ -16,6 +21,8 @@ class SignupScreen extends StatelessWidget {
     confirmPassword: '',
     id: '',
   );
+
+  bool _acceptedTerms = false;
 
   @override
   Widget build(BuildContext context) {
@@ -93,7 +100,45 @@ class SignupScreen extends StatelessWidget {
                       },
                       onSaved: (pass) => user.confirmPassword = pass ?? '',
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 8),
+                    CheckboxListTile(
+                      value: _acceptedTerms,
+                      controlAffinity: ListTileControlAffinity.leading,
+                      contentPadding: EdgeInsets.zero,
+                      onChanged: userManager.loading
+                          ? null
+                          : (value) =>
+                              setState(() => _acceptedTerms = value ?? false),
+                      title: Wrap(
+                        children: <Widget>[
+                          const Text('Li e aceito os '),
+                          GestureDetector(
+                            onTap: () =>
+                                Navigator.of(context).pushNamed('/terms'),
+                            child: Text(
+                              'Termos de Uso',
+                              style: TextStyle(
+                                color: Theme.of(context).primaryColor,
+                                decoration: TextDecoration.underline,
+                              ),
+                            ),
+                          ),
+                          const Text(' e a '),
+                          GestureDetector(
+                            onTap: () =>
+                                Navigator.of(context).pushNamed('/privacy'),
+                            child: Text(
+                              'Política de Privacidade',
+                              style: TextStyle(
+                                color: Theme.of(context).primaryColor,
+                                decoration: TextDecoration.underline,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 8),
                     SizedBox(
                       height: 44,
                       child: ElevatedButton(
@@ -105,7 +150,7 @@ class SignupScreen extends StatelessWidget {
                             borderRadius: BorderRadius.circular(8),
                           ),
                         ),
-                        onPressed: userManager.loading
+                        onPressed: userManager.loading || !_acceptedTerms
                             ? null
                             : () {
                                 if (formKey.currentState!.validate()) {

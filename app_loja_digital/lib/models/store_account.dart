@@ -2,9 +2,10 @@ import 'package:app_loja_digital/models/plan.dart';
 import 'package:app_loja_digital/models/subscription.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-/// O TENANT: o documento raiz stores/{storeId} — a conta da loja na
-/// plataforma (equipe, plano, assinatura, ativa/suspensa).
-/// Não confundir com Store (unidade física, em locations/).
+/// O TENANT: o documento raiz stores/{storeId} — a conta da empresa na
+/// plataforma (donos, plano, assinatura, taxa, ativa/suspensa).
+/// Não confundir com Store (unidade física, em locations/). Funcionários
+/// ficam em stores/{storeId}/staff (ver StaffMember).
 class StoreAccount {
   StoreAccount({
     required this.id,
@@ -13,12 +14,13 @@ class StoreAccount {
     this.active = true,
     this.ownerUid = '',
     List<String>? masters,
-    List<String>? admins,
     String? planId,
     Subscription? subscription,
+    this.serviceFee = const ServiceFeeConfig(),
+    this.mpConnected = false,
+    this.closureRequested = false,
   })  : masters = masters ?? [],
-        admins = admins ?? [],
-        planId = planId ?? PlanCatalog.mensalBasico.id,
+        planId = planId ?? PlanCatalog.unica.id,
         subscription = subscription ?? Subscription.startTrial();
 
   factory StoreAccount.fromDocument(
@@ -31,15 +33,18 @@ class StoreAccount {
       active: (data['active'] ?? true) as bool,
       ownerUid: (data['ownerUid'] ?? '') as String,
       masters: List<String>.from(data['masters'] as List<dynamic>? ?? []),
-      admins: List<String>.from(data['admins'] as List<dynamic>? ?? []),
-      planId: (data['plan'] ?? PlanCatalog.mensalBasico.id) as String,
+      planId: (data['plan'] ?? PlanCatalog.unica.id) as String,
       subscription: Subscription.fromMap(
           Map<String, dynamic>.from(data['subscription'] as Map? ?? {})),
+      serviceFee: ServiceFeeConfig.fromMap(
+          (data['serviceFee'] as Map?)?.cast<String, dynamic>()),
+      mpConnected: (data['mpConnected'] ?? false) as bool,
+      closureRequested: (data['closureRequested'] ?? false) as bool,
     );
   }
 
+  /// Donos/sócios (admin-master): tudo, inclui equipe, plano e encerramento.
   static const int maxMasters = 3;
-  static const int maxAdmins = 5;
 
   final String id;
   String name;
@@ -48,25 +53,27 @@ class StoreAccount {
   /// Chave de suspensão automática: quando false, site e app saem do ar.
   bool active;
 
+  /// Dono principal (quem criou a loja). Não pode sair nem excluir a conta.
   String ownerUid;
 
-  /// Admins-master (até 3): tudo + equipe + assinatura.
   List<String> masters;
-
-  /// Admins (até 5): produtos, home e pedidos. Sem equipe/assinatura.
-  List<String> admins;
 
   String planId;
   Subscription subscription;
+  ServiceFeeConfig serviceFee;
+
+  /// A conta Mercado Pago da empresa está conectada (gravado pelo backend).
+  bool mpConnected;
+
+  /// O dono pediu o encerramento — aguardando a plataforma.
+  bool closureRequested;
 
   Plan get plan => PlanCatalog.byId(planId);
 
   bool isMaster(String? uid) => uid != null && masters.contains(uid);
-  bool isAdmin(String? uid) =>
-      uid != null && (admins.contains(uid) || masters.contains(uid));
+  bool isOwner(String? uid) => uid != null && uid == ownerUid;
 
   bool get canAddMaster => masters.length < maxMasters;
-  bool get canAddAdmin => admins.length < maxAdmins;
 
   /// A loja pode vender? (ativa e assinatura não suspensa)
   bool get canSell =>
@@ -79,9 +86,9 @@ class StoreAccount {
       'active': active,
       'ownerUid': ownerUid,
       'masters': masters,
-      'admins': admins,
       'plan': planId,
       'subscription': subscription.toMap(),
+      'serviceFee': serviceFee.toMap(),
     };
   }
 }

@@ -1,0 +1,7 @@
+# Internacionalização (i18n). Português do Brasil é o idioma base; para um
+# idioma novo, copie lib/l10n/app_pt.arb para app_<código>.arb e traduza.
+arb-dir: lib/l10n
+template-arb-file: app_pt.arb
+output-localization-file: app_localizations.dart
+output-class: AppLocalizations
+nullable-getter: false

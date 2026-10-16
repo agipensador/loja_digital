@@ -1,3 +1,4 @@
+import 'package:app_loja_digital/helpers/br_format.dart';
 import 'package:app_loja_digital/models/item_size.dart';
 import 'package:app_loja_digital/models/product.dart';
 import 'package:flutter/material.dart';
@@ -48,7 +49,7 @@ class SizeWidget extends StatelessWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Text(
-                'R\$ ${size.price.toStringAsFixed(2)}',
+                Br.money(size.price),
                 style: TextStyle(color: color),
               ),
             ),

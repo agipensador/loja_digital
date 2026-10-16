@@ -25,6 +25,10 @@
 /// IAP só serve para conteúdo/serviços DIGITAIS consumidos no próprio app.
 library;
 
+import 'dart:convert';
+
+import 'package:http/http.dart' as http;
+
 enum PaymentType { credit, debit, pix }
 
 /// Dados brutos do cartão, usados APENAS em memória para tokenizar.
@@ -156,10 +160,21 @@ class FakePaymentService implements PaymentService {
   }
 }
 
-/// Esqueleto do provedor real — implementar quando plugar o SDK do MP.
+/// Provedor real: chama as Cloud Functions do Mercado Pago (backend). Exige
+/// o projeto Firebase no plano Blaze com as Functions
+/// `oauthConnectStore`/`payWithCard`/`payWithPix`/`paymentWebhook`
+/// publicadas — enquanto isso não existir, estas chamadas falham com erro
+/// de rede (esperado). Ver docs/PAGAMENTOS.md.
 class MercadoPagoService implements PaymentService {
+  Uri _endpoint(String path) =>
+      Uri.parse('${MercadoPagoConfig.backendUrl}/$path');
+
   @override
   Future<String> createCardToken(RawCard card) {
+    // A tokenização de cartão acontece no DISPOSITIVO via SDK do MP (o
+    // número real nunca deve passar pelo nosso backend). Falta adicionar a
+    // dependência do SDK (ex.: `mercado_pago_sdk`) e usar aqui — este
+    // método fica como ponto único de integração.
     throw UnimplementedError(
         'Integrar SDK do Mercado Pago (createCardToken). '
         'Public Key configurada: ${MercadoPagoConfig.isConfigured}');
@@ -172,10 +187,24 @@ class MercadoPagoService implements PaymentService {
     required String orderId,
     String? sellerId,
     num feeAmount = 0,
-  }) {
-    // TODO: POST ${MercadoPagoConfig.backendUrl}/payWithCard com
-    // {cardToken, amount, orderId, sellerId, feeAmount(application_fee)}.
-    throw UnimplementedError('Chamar Cloud Function do Mercado Pago (cartão).');
+  }) async {
+    final response = await http.post(
+      _endpoint('payWithCard'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        'cardToken': cardToken,
+        'amount': amount,
+        'orderId': orderId,
+        'sellerId': sellerId,
+        'feeAmount': feeAmount,
+      }),
+    );
+    final data = jsonDecode(response.body) as Map<String, dynamic>;
+    return PaymentResult(
+      approved: (data['approved'] ?? false) as bool,
+      message: data['message'] as String?,
+      transactionId: data['transactionId'] as String?,
+    );
   }
 
   @override
@@ -185,9 +214,25 @@ class MercadoPagoService implements PaymentService {
     required String payerEmail,
     String? sellerId,
     num feeAmount = 0,
-  }) {
-    // TODO: POST ${MercadoPagoConfig.backendUrl}/payWithPix com
-    // {amount, orderId, payerEmail, sellerId, feeAmount(application_fee)}.
-    throw UnimplementedError('Chamar Cloud Function do Mercado Pago (Pix).');
+  }) async {
+    final response = await http.post(
+      _endpoint('payWithPix'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        'amount': amount,
+        'orderId': orderId,
+        'payerEmail': payerEmail,
+        'sellerId': sellerId,
+        'feeAmount': feeAmount,
+      }),
+    );
+    final data = jsonDecode(response.body) as Map<String, dynamic>;
+    return PaymentResult(
+      approved: (data['approved'] ?? false) as bool,
+      message: data['message'] as String?,
+      transactionId: data['transactionId'] as String?,
+      pixCopyPaste: data['pixCopyPaste'] as String?,
+      pixQrBase64: data['pixQrBase64'] as String?,
+    );
   }
 }

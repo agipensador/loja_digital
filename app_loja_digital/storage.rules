@@ -1,7 +1,7 @@
 rules_version = '2';
 
 // Storage multi-tenant: imagens ficam em stores/{storeId}/... e só a equipe
-// da loja (masters/admins, lidos do Firestore) pode gravar.
+// da loja (donos ou funcionários, lidos do Firestore) pode gravar.
 service firebase.storage {
   match /b/{bucket}/o {
 
@@ -9,8 +9,8 @@ service firebase.storage {
       return request.auth != null && (
         request.auth.uid in firestore.get(
           /databases/(default)/documents/stores/$(storeId)).data.masters ||
-        request.auth.uid in firestore.get(
-          /databases/(default)/documents/stores/$(storeId)).data.admins
+        firestore.exists(
+          /databases/(default)/documents/stores/$(storeId)/staff/$(request.auth.uid))
       );
     }
 

@@ -5,7 +5,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 class CartProduct {
   // quando criado a partir do produto (usuário adiciona)
-  CartProduct.fromProduct(Product product) {
+  CartProduct.fromProduct(Product product, {required this.locationId}) {
     id = null;
     this.product = product;
     productId = product.id!;
@@ -20,6 +20,7 @@ class CartProduct {
     productId = data['pid'] as String? ?? '';
     quantity = data['quantity'] as int? ?? 0;
     size = data['size'] as String? ?? '';
+    locationId = data['locationId'] as String? ?? kDefaultLocationId;
 
     // carrega o produto completo de forma assíncrona
     Tenant.col('products').doc(productId).get().then((pdoc) {
@@ -35,6 +36,9 @@ class CartProduct {
   late int quantity;
   late String size;
 
+  /// Unidade física que vai atender (e dar baixa no estoque d)este item.
+  late String locationId;
+
   Product? product; // pode ser null até o carregamento terminar
 
   ItemSize? get itemSize => product?.findSize(size);
@@ -47,7 +51,7 @@ class CartProduct {
   bool get hasStock {
     final ItemSize? s = itemSize;
     if (s == null) return false;
-    return s.stock >= quantity;
+    return s.stockAt(locationId) >= quantity;
   }
 
   Map<String, dynamic> toCartItemMap() {
@@ -55,6 +59,7 @@ class CartProduct {
       'pid': productId,
       'quantity': quantity,
       'size': size,
+      'locationId': locationId,
     };
   }
 
@@ -64,16 +69,19 @@ class CartProduct {
       'pid': productId,
       'quantity': quantity,
       'size': size,
+      'locationId': locationId,
       'name': product?.name ?? '',
       'price': unitPrice,
       'image': (product?.images.isNotEmpty ?? false)
-          ? product!.images.first
+          ? product!.coverThumb
           : '',
     };
   }
 
-  bool stackable(Product other) {
-    return other.id == productId && other.selectedSize?.name == size;
+  bool stackable(Product other, String otherLocationId) {
+    return other.id == productId &&
+        other.selectedSize?.name == size &&
+        otherLocationId == locationId;
   }
 
   void increment() => quantity++;

@@ -1,3 +1,14 @@
+import groovy.json.JsonSlurper
+
+// Um productFlavor por loja, lido de flavors/<id>/flavor.json (criado pelo
+// tool/new_flavor.sh). Cada flavor tem o seu google-services.json em
+// android/app/src/<id>/ — o plugin do Google Services escolhe sozinho.
+val storeFlavorDirs: List<File> = rootProject.file("../flavors")
+    .listFiles()
+    ?.filter { File(it, "flavor.json").exists() }
+    ?.sortedBy { it.name }
+    ?: emptyList()
+
 plugins {
     id("com.android.application")
     id("kotlin-android")
@@ -29,6 +40,22 @@ android {
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+        manifestPlaceholders["appLabel"] = "Loja Digital"
+    }
+
+    if (storeFlavorDirs.isNotEmpty()) {
+        flavorDimensions += "loja"
+        productFlavors {
+            storeFlavorDirs.forEach { dir ->
+                @Suppress("UNCHECKED_CAST")
+                val cfg = JsonSlurper().parse(File(dir, "flavor.json")) as Map<String, Any>
+                create(dir.name) {
+                    dimension = "loja"
+                    applicationId = cfg["androidPackage"] as String
+                    manifestPlaceholders["appLabel"] = cfg["appName"] as String
+                }
+            }
+        }
     }
 
     buildTypes {

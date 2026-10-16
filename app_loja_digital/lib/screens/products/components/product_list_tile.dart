@@ -1,3 +1,4 @@
+import 'package:app_loja_digital/helpers/br_format.dart';
 import 'package:app_loja_digital/common/store_image.dart';
 import 'package:app_loja_digital/models/product.dart';
 import 'package:flutter/material.dart';
@@ -25,7 +26,7 @@ class ProductListTile extends StatelessWidget {
               AspectRatio(
                 aspectRatio: 1,
                 child: StoreImage(
-                  product.images.isNotEmpty ? product.images.first : null,
+                  product.coverThumb,
                 ),
               ),
               const SizedBox(width: 16),
@@ -52,7 +53,7 @@ class ProductListTile extends StatelessWidget {
                       ),
                     ),
                     Text(
-                      'R\$ ${product.basePrice.toStringAsFixed(2)}',
+                      Br.money(product.basePrice),
                       style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w800,

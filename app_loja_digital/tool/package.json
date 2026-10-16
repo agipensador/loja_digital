@@ -1,0 +1,8 @@
+{
+  "name": "loja-digital-tools",
+  "private": true,
+  "description": "Scripts de operação: criar/apagar flavors e provisionar lojas.",
+  "dependencies": {
+    "firebase-admin": "^13.0.0"
+  }
+}

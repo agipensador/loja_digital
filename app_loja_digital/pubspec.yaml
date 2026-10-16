@@ -22,13 +22,25 @@ dependencies:
   image_picker: ^1.1.2
   http: ^1.2.0
   url_launcher: ^6.3.0
-  font_awesome_flutter: ^10.7.0
+  font_awesome_flutter: ^11.0.0
   flutter_colorpicker: ^1.1.0
+  intl: ^0.20.2
+  image: ^4.10.1
+  cached_network_image: ^4.0.3
+  file_picker: ^13.1.0
+  csv: ^8.0.0
+  flutter_localizations:
+    sdk: flutter
+  archive: ^4.3.0
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^5.0.0
+  flutter_native_splash: ^2.4.8
+  flutter_launcher_icons: ^0.14.4
 
 flutter:
   uses-material-design: true
+  # Traduções: lib/l10n/app_*.arb → flutter gen-l10n (ver l10n.yaml)
+  generate: true

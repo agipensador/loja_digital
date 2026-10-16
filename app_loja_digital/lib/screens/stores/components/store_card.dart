@@ -1,3 +1,4 @@
+import 'package:app_loja_digital/models/staff_member.dart';
 import 'package:app_loja_digital/common/store_image.dart';
 import 'package:app_loja_digital/models/store.dart';
 import 'package:app_loja_digital/models/user_manager.dart';
@@ -21,7 +22,7 @@ class StoreCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final primaryColor = Theme.of(context).primaryColor;
-    final adminEnabled = context.watch<UserManager>().adminEnabled;
+    final adminEnabled = context.watch<UserManager>().can(Perm.locations);
     final imageUrl = store.image is String ? store.image as String : null;
 
     return Card(

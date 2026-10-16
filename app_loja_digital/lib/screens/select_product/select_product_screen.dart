@@ -1,3 +1,4 @@
+import 'package:app_loja_digital/common/store_image.dart';
 import 'package:app_loja_digital/models/product.dart';
 import 'package:app_loja_digital/models/product_manager.dart';
 import 'package:flutter/material.dart';
@@ -54,8 +55,10 @@ class SelectProductScreen extends StatelessWidget {
                       final Product product = products[index];
                       return ListTile(
                         leading: product.images.isNotEmpty
-                            ? Image.network(product.images.first,
-                                width: 40, height: 40, fit: BoxFit.cover)
+                            ? SizedBox(
+                                width: 40,
+                                height: 40,
+                                child: StoreImage(product.coverThumb))
                             : const Icon(Icons.image_not_supported),
                         title: Text(product.name),
                         subtitle: Text(product.category),

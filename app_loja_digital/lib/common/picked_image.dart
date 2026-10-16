@@ -1,3 +1,4 @@
+import 'package:app_loja_digital/common/store_image.dart';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
@@ -16,7 +17,7 @@ class PickedImage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (image is String) {
-      return Image.network(image as String, fit: fit);
+      return StoreImage(image as String, fit: fit);
     }
     if (image is XFile) {
       return FutureBuilder<Uint8List>(
