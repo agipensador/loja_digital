@@ -44,7 +44,9 @@ final _descricao = RegExp(
 final _tituloIos = RegExp(
   r'(<meta\s+name="apple-mobile-web-app-title"\s+content=")[^"]*(")',
 );
-final _corDoTema = RegExp(r'<meta\s+name="theme-color"\s+content="[^"]*"\s*/?>');
+final _corDoTema = RegExp(
+  r'<meta\s+name="theme-color"\s+content="[^"]*"\s*/?>',
+);
 final _fimDoHead = RegExp(r'\s*</head>');
 
 /// O `index.html` da PWA com o título, a descrição e a cor da loja.
@@ -65,11 +67,12 @@ String indexDaLoja(String htmlOriginal, LojaWeb loja) {
   );
 
   final corDoTema = '<meta name="theme-color" content="${loja.corTema}">';
-  html = _corDoTema.hasMatch(html)
-      ? html.replaceFirst(_corDoTema, corDoTema)
-      // O index.html do Flutter não traz `theme-color`. Entra no fim do
-      // <head> para o Android pintar a barra do navegador com a cor da loja.
-      : html.replaceFirst(_fimDoHead, '\n  $corDoTema\n</head>');
+  html =
+      _corDoTema.hasMatch(html)
+          ? html.replaceFirst(_corDoTema, corDoTema)
+          // O index.html do Flutter não traz `theme-color`. Entra no fim do
+          // <head> para o Android pintar a barra do navegador com a cor da loja.
+          : html.replaceFirst(_fimDoHead, '\n  $corDoTema\n</head>');
 
   return html;
 }

@@ -33,7 +33,7 @@ Future<void> main(List<String> argumentos) async {
 
   final loja = opcoes.loja;
   final pasta = Directory(loja.pastaDoBuild);
-  stdout.writeln('==> Loja ${loja.nome} (${loja.storeId})');
+  stdout.writeln('==> ${loja.nome} (${loja.storeId})');
 
   if (opcoes.comBuild) {
     final codigo = await _compilar(loja, opcoes.baseHref);
@@ -107,9 +107,7 @@ void _marcar(Directory pasta, LojaWeb loja) {
       throw StateError('${arquivo.path} não existe — o build web falhou?');
     }
   }
-  manifest.writeAsStringSync(
-    manifestDaLoja(manifest.readAsStringSync(), loja),
-  );
+  manifest.writeAsStringSync(manifestDaLoja(manifest.readAsStringSync(), loja));
   index.writeAsStringSync(indexDaLoja(index.readAsStringSync(), loja));
   stdout.writeln('==> manifest.json e index.html com a marca da loja');
 }
@@ -118,16 +116,15 @@ void _marcar(Directory pasta, LojaWeb loja) {
 void _gerarIcones(Directory pasta, LojaWeb loja) {
   final logo = File(loja.logo);
   if (!logo.existsSync()) {
-    stdout.writeln('''
+    stdout.writeln(
+      '''
 ==> ⚠ Sem logotipo em ${loja.logo}: o site vai para o ar com o ícone padrão
     do Flutter. Coloque um PNG quadrado (≥ 512 px) nesse caminho e rode de
-    novo (o mesmo arquivo serve de ícone do app nativo — tool/new_flavor.sh).''');
+    novo (o mesmo arquivo serve de ícone do app nativo — tool/new_flavor.sh).''',
+    );
     return;
   }
-  final icones = iconesDaLoja(
-    Uint8List.fromList(logo.readAsBytesSync()),
-    loja,
-  );
+  final icones = iconesDaLoja(Uint8List.fromList(logo.readAsBytesSync()), loja);
   icones.forEach((caminho, bytes) {
     File('${pasta.path}/$caminho')
       ..createSync(recursive: true)
@@ -189,12 +186,12 @@ class _Opcoes {
   }
 
   static LojaWeb _comNome(LojaWeb loja, String nome) => LojaWeb(
-        storeId: loja.storeId,
-        nome: nome,
-        nomeCurto: nome,
-        descricao: loja.descricao,
-        logo: loja.logo,
-        corTema: loja.corTema,
-        corFundo: loja.corFundo,
-      );
+    storeId: loja.storeId,
+    nome: nome,
+    nomeCurto: nome,
+    descricao: loja.descricao,
+    logo: loja.logo,
+    corTema: loja.corTema,
+    corFundo: loja.corFundo,
+  );
 }

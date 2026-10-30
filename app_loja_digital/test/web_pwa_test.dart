@@ -64,7 +64,10 @@ void main() {
     });
 
     test('título, descrição e título do iOS são os da loja', () {
-      expect(html, contains('<title>Bolos &amp; Cia &quot;da esquina&quot;</title>'));
+      expect(
+        html,
+        contains('<title>Bolos &amp; Cia &quot;da esquina&quot;</title>'),
+      );
       expect(
         html,
         contains(
@@ -91,11 +94,18 @@ void main() {
     });
 
     test('insere a cor quando o index não tem theme-color', () {
-      const semCor = '<!DOCTYPE html><html lang="pt-BR"><head>'
+      const semCor =
+          '<!DOCTYPE html><html lang="pt-BR"><head>'
           '<title>x</title></head><body></body></html>';
       final remendado = indexDaLoja(semCor, _loja);
-      expect(remendado, contains('<meta name="theme-color" content="#112233">'));
-      expect(remendado.indexOf('theme-color'), lessThan(remendado.indexOf('</head>')));
+      expect(
+        remendado,
+        contains('<meta name="theme-color" content="#112233">'),
+      );
+      expect(
+        remendado.indexOf('theme-color'),
+        lessThan(remendado.indexOf('</head>')),
+      );
     });
 
     test('o idioma da página é pt-BR', () {
@@ -154,19 +164,22 @@ void main() {
       hosting = config['hosting'] as List<dynamic>;
       final firebaserc =
           jsonDecode(File('.firebaserc').readAsStringSync()) as Map;
-      alvos = ((firebaserc['targets']
-                  as Map)['loja-digital-ju0714']
-              as Map)['hosting'] as Map<String, dynamic>;
+      alvos =
+          ((firebaserc['targets'] as Map)['loja-digital-ju0714']
+                  as Map)['hosting']
+              as Map<String, dynamic>;
     });
 
     test('cada loja do catálogo tem alvo de hosting nos dois arquivos', () {
       for (final loja in lojasWeb.values) {
         final entrada = hosting.cast<Map>().firstWhere(
-              (h) => h['target'] == loja.alvoDeHosting,
-              orElse: () => throw StateError(
-                'firebase.json sem o alvo "${loja.alvoDeHosting}"',
-              ),
-            );
+          (h) => h['target'] == loja.alvoDeHosting,
+          orElse:
+              () =>
+                  throw StateError(
+                    'firebase.json sem o alvo "${loja.alvoDeHosting}"',
+                  ),
+        );
         expect(
           entrada['public'],
           loja.pastaDoBuild,
@@ -208,10 +221,13 @@ void main() {
         final headers = (entrada['headers'] as List).cast<Map>();
         final semCache = headers.firstWhere(
           (h) => (h['headers'] as List).cast<Map>().any(
-                (c) => c['key'] == 'Cache-Control' && c['value'] == 'no-cache',
-              ),
-          orElse: () =>
-              throw StateError('${entrada['target']}: sem regra de no-cache'),
+            (c) => c['key'] == 'Cache-Control' && c['value'] == 'no-cache',
+          ),
+          orElse:
+              () =>
+                  throw StateError(
+                    '${entrada['target']}: sem regra de no-cache',
+                  ),
         );
         for (final arquivo in [
           'index.html',
@@ -241,8 +257,11 @@ void main() {
     test('não sobrou o texto padrão do flutter create', () {
       for (final arquivo in ['web/index.html', 'web/manifest.json']) {
         final conteudo = File(arquivo).readAsStringSync();
-        expect(conteudo, isNot(contains('A new Flutter project')),
-            reason: arquivo);
+        expect(
+          conteudo,
+          isNot(contains('A new Flutter project')),
+          reason: arquivo,
+        );
         expect(conteudo, isNot(contains('app_loja_digital')), reason: arquivo);
       }
     });
@@ -256,13 +275,19 @@ void main() {
     });
 
     test('gera os 4 ícones do manifest e o favicon', () {
-      final manifest = jsonDecode(
-        manifestDaLoja(File('web/manifest.json').readAsStringSync(), _loja),
-      ) as Map<String, dynamic>;
-      final noManifest = (manifest['icons'] as List)
-          .cast<Map>()
-          .map((i) => i['src'] as String)
-          .toSet();
+      final manifest =
+          jsonDecode(
+                manifestDaLoja(
+                  File('web/manifest.json').readAsStringSync(),
+                  _loja,
+                ),
+              )
+              as Map<String, dynamic>;
+      final noManifest =
+          (manifest['icons'] as List)
+              .cast<Map>()
+              .map((i) => i['src'] as String)
+              .toSet();
 
       expect(icones.keys, containsAll(noManifest));
       expect(icones.keys, contains('favicon.png'));

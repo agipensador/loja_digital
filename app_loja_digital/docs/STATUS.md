@@ -4,9 +4,33 @@
 > o que já funciona, o que falta e o que só você (Giovanni) precisa fazer.
 > Detalhe técnico completo e checklist por fase: [ARQUITETURA_SAAS.md](ARQUITETURA_SAAS.md).
 
-**Última atualização:** 2026-10-08
+**Última atualização:** 2026-10-30
 **Fase atual:** ✅ Fase A (fundação, multi-lojas, equipe, entrega) · ✅ painel-mestre v0, avisos, atendimento v1 · ⏭️ próxima: Blaze + Mercado Pago (Fase B) e a loja-exemplo Inforizz
 **Checklist da 1ª versão publicável:** ARQUITETURA_SAAS.md → "CHECKLIST DA 1ª VERSÃO PUBLICÁVEL (v1)".
+
+### Rodada 2026-10-30 — site da loja pronto para hospedar (tarefa L1, agente)
+- **O site de cada loja já compila com a marca dela.**
+  `dart run tool/build_web.dart loja_ju` → `build/web_loja_ju` com título,
+  descrição, cores e ícones da loja. Antes, qualquer loja subiria chamada
+  "app_loja_digital", com "A new Flutter project." e o ícone do Flutter.
+- A pasta `web/` deixou de ser reescrita a cada build (era o que o
+  `build_web_flavor.sh` fazia): o remendo acontece só na pasta do build, então
+  duas lojas podem ser compiladas em sequência sem uma vazar na outra.
+- `firebase.json` com **um alvo de hosting por loja** (`loja_ju`, `loja_gi`),
+  SPA e `no-cache` no `index.html` e nos carregadores do Flutter; `.firebaserc`
+  novo com o projeto padrão e o site de cada alvo.
+- Esteira `.github/workflows/web.yml`: analyze + testes + build em PR e na
+  main; tag `web-loja_ju-v1.0.0` manda a loja para o Hosting. **O envio está
+  desligado** até o secret existir — o job avisa e termina verde.
+- **33 testes novos** (99 no total): remendo da marca, consistência
+  catálogo × `firebase.json` × `.firebaserc`, formato da tag, margem do ícone
+  *maskable* e as regras da esteira.
+- **Nada foi para o ar.** Passo a passo do que falta (criar o site no Firebase,
+  pôr o logotipo da loja, criar o secret): **[PUBLICAR_WEB.md](PUBLICAR_WEB.md)**.
+- **Pendente seu:**
+  - [ ] `firebase hosting:sites:create loja-digital-ju0714-lojaju --project loja-digital-ju0714`
+  - [ ] logotipo quadrado em `flavors/lojaju/icon.png` (senão: ícone do Flutter)
+  - [ ] secret `FIREBASE_SERVICE_ACCOUNT` no environment `producao` do GitHub
 
 ### Rodada 2026-10-08 — Blaze, regras publicadas, lojas loja_ju e loja_gi
 - **Blaze confirmado** (faturamento ativo no `loja-digital-ju0714`).

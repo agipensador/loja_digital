@@ -44,10 +44,8 @@ Map<String, Uint8List> iconesDaLoja(Uint8List logoPng, LojaWeb loja) {
     'favicon.png': _encaixar(logo, _ladoDoFavicon, 1, fundo),
     'icons/Icon-192.png': _encaixar(logo, 192, 1, fundo),
     'icons/Icon-512.png': _encaixar(logo, 512, 1, fundo),
-    'icons/Icon-maskable-192.png':
-        _encaixar(logo, 192, _fracaoSegura, fundo),
-    'icons/Icon-maskable-512.png':
-        _encaixar(logo, 512, _fracaoSegura, fundo),
+    'icons/Icon-maskable-192.png': _encaixar(logo, 192, _fracaoSegura, fundo),
+    'icons/Icon-maskable-512.png': _encaixar(logo, 512, _fracaoSegura, fundo),
   };
 }
 
@@ -87,10 +85,5 @@ img.Color _corDoHex(String hex) {
   final rgb = limpo.length == 8 ? valor & 0xFFFFFF : valor;
   // Opaco de propósito: ícone "maskable" transparente aparece preto no
   // Android, e o favicon fica invisível na aba clara.
-  return img.ColorRgba8(
-    (rgb >> 16) & 0xFF,
-    (rgb >> 8) & 0xFF,
-    rgb & 0xFF,
-    255,
-  );
+  return img.ColorRgba8((rgb >> 16) & 0xFF, (rgb >> 8) & 0xFF, rgb & 0xFF, 255);
 }

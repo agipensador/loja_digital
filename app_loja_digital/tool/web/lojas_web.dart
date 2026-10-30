@@ -81,16 +81,14 @@ const lojasWeb = <String, LojaWeb>{
     storeId: 'loja_ju',
     nome: 'Loja Ju',
     nomeCurto: 'Loja Ju',
-    descricao:
-        'Loja Ju: veja o catálogo, monte seu carrinho e receba em casa.',
+    descricao: 'Loja Ju: veja o catálogo, monte seu carrinho e receba em casa.',
     logo: 'flavors/lojaju/icon.png',
   ),
   'loja_gi': LojaWeb(
     storeId: 'loja_gi',
     nome: 'Loja Gi',
     nomeCurto: 'Loja Gi',
-    descricao:
-        'Loja Gi: veja o catálogo, monte seu carrinho e receba em casa.',
+    descricao: 'Loja Gi: veja o catálogo, monte seu carrinho e receba em casa.',
     logo: 'flavors/lojagi/icon.png',
   ),
 };
