@@ -1,0 +1,22 @@
+{
+  "name": "loja-digital-functions",
+  "private": true,
+  "description": "Cloud Functions da plataforma Inforizz Lojas (checkout e webhook do Mercado Pago).",
+  "main": "lib/src/index.js",
+  "engines": {
+    "node": "20"
+  },
+  "scripts": {
+    "build": "tsc",
+    "lint": "tsc --noEmit",
+    "test": "tsc -p tsconfig.test.json && node --test lib/test/"
+  },
+  "dependencies": {
+    "firebase-admin": "^13.0.0",
+    "firebase-functions": "^6.3.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.17.0",
+    "typescript": "^5.6.0"
+  }
+}
