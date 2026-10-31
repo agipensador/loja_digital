@@ -127,13 +127,17 @@ jobs:
     environment: producao
     env:
       LOJA: ${{ needs.compilar.outputs.loja }}
+      # Nome da tag por env, nunca `${{ }}` dentro de `run:`: o nome de uma tag
+      # é texto livre, e interpolado direto no script ele seria executado como
+      # comando. Mesmo cuidado do job `compilar` (REF_TYPE/REF_NAME).
+      TAG: ${{ github.ref_name }}
       # `secrets` não pode ser lido num `if:` de job, mas pode virar env.
       TEM_CHAVE: ${{ secrets.FIREBASE_SERVICE_ACCOUNT != '' && 'sim' || 'nao' }}
     steps:
       - name: Sem a chave, não envia nada
         if: env.TEM_CHAVE != 'sim'
         run: |
-          echo "::warning title=Envio desligado::Crie o secret FIREBASE_SERVICE_ACCOUNT (receita em app_loja_digital/docs/PUBLICAR_WEB.md) para a tag ${{ github.ref_name }} ir para o ar. O site compilado está no artefato web-$LOJA."
+          echo "::warning title=Envio desligado::Crie o secret FIREBASE_SERVICE_ACCOUNT (receita em app_loja_digital/docs/PUBLICAR_WEB.md) para a tag $TAG ir para o ar. O site compilado está no artefato web-$LOJA."
 
       - uses: actions/checkout@v4
         if: env.TEM_CHAVE == 'sim'
@@ -160,4 +164,4 @@ jobs:
       - name: Hosting da loja ${{ needs.compilar.outputs.loja }}
         if: env.TEM_CHAVE == 'sim'
         working-directory: app_loja_digital
-        run: npx -y firebase-tools@14 deploy --only "hosting:$LOJA" --project "$PROJETO" --non-interactive --message "${{ github.ref_name }}"
+        run: npx -y firebase-tools@14 deploy --only "hosting:$LOJA" --project "$PROJETO" --non-interactive --message "$TAG"

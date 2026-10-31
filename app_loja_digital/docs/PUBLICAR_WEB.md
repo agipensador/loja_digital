@@ -74,6 +74,12 @@ inicial do celular do cliente. Coloque um PNG **quadrado**, de preferência
 um logotipo por loja, nada duplicado. O build gera sozinho os 5 PNGs da PWA
 (192, 512, os dois *maskable* e o favicon).
 
+⚠️ **Commite o PNG** (`git add flavors/lojaju/icon.png`). A pasta `flavors/`
+não está no `.gitignore`, mas hoje também **não existe no repositório** — e a
+esteira compila a partir do `git clone`. Logotipo que só existe na sua máquina
+serve para o build local; o site que a tag `web-loja_ju-v1.0.0` manda para o ar
+sai com o ícone do Flutter.
+
 > O ícone *maskable* ocupa 56% do quadrado de propósito: o Android recorta o
 > ícone em círculo e só garante os 80% centrais. Logotipo maior que isso sai
 > com as pontas cortadas.
