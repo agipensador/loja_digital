@@ -1,0 +1,13 @@
+{
+  "projects": {
+    "default": "loja-digital-ju0714"
+  },
+  "targets": {
+    "loja-digital-ju0714": {
+      "hosting": {
+        "loja_ju": ["loja-digital-ju0714-lojaju"],
+        "loja_gi": ["loja-digital-ju0714-lojagi"]
+      }
+    }
+  }
+}

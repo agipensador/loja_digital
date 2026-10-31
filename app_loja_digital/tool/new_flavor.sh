@@ -105,20 +105,27 @@ SITE="$PROJECT-$ID"
 firebase hosting:sites:create "$SITE" --project "$PROJECT" >/dev/null 2>&1 \
   && echo "    https://$SITE.web.app" \
   || echo "    ⚠ Não consegui criar o site $SITE (nome em uso?)."
+# O alvo de hosting é o STORE_ID (e não o id do flavor), porque é o storeId
+# que o resto da web usa: pasta do build, catálogo em tool/web/lojas_web.dart,
+# tag de release (web-<storeId>-v…) e o comando `--only hosting:<storeId>`.
 node -e '
 const fs = require("fs");
-const [id, site] = process.argv.slice(1);
+const [storeId, site] = process.argv.slice(1);
 const cfg = JSON.parse(fs.readFileSync("firebase.json", "utf8"));
 const hosting = Array.isArray(cfg.hosting) ? cfg.hosting : (cfg.hosting ? [cfg.hosting] : []);
-if (!hosting.some(h => h.target === id)) {
-  hosting.push({ target: id, public: `build/web_${id}`,
+if (!hosting.some(h => h.target === storeId)) {
+  hosting.push({ target: storeId, public: `build/web_${storeId}`,
     ignore: ["firebase.json", "**/.*", "**/node_modules/**"],
-    rewrites: [{ source: "**", destination: "/index.html" }] });
+    rewrites: [{ source: "**", destination: "/index.html" }],
+    headers: [{ source: "/@(index.html|manifest.json|flutter_bootstrap.js|flutter_service_worker.js|main.dart.js)",
+      headers: [{ key: "Cache-Control", value: "no-cache" }] }] });
 }
 cfg.hosting = hosting;
 fs.writeFileSync("firebase.json", JSON.stringify(cfg, null, 2) + "\n");
-' "$ID" "$SITE"
-firebase target:apply hosting "$ID" "$SITE" --project "$PROJECT" >/dev/null 2>&1 || true
+' "$STORE_ID" "$SITE"
+firebase target:apply hosting "$STORE_ID" "$SITE" --project "$PROJECT" >/dev/null 2>&1 || true
+echo "    ⚠ FALTA À MÃO: acrescentar a loja em tool/web/lojas_web.dart e o"
+echo "      site em .firebaserc (o teste test/web_pwa_test.dart cobra os 3)."
 
 echo "==> 5/5 Loja no Firestore"
 if [[ -n "${GOOGLE_APPLICATION_CREDENTIALS:-}" ]]; then
@@ -171,7 +178,8 @@ cat <<DONE
 
 Pronto. Próximos passos:
   • Rodar:   flutter run --flavor $ID --dart-define-from-file=flavors/$ID/dart_defines.json
-  • Web:     tool/build_web_flavor.sh $ID   (ícones + build)
-             firebase deploy --only hosting:$ID
+  • Web:     entrada da loja em tool/web/lojas_web.dart e site em .firebaserc
+             dart run tool/build_web.dart $STORE_ID   (marca + ícones + build)
+             depois: --only hosting:$STORE_ID  (ver docs/PUBLICAR_WEB.md)
   • Android: flutter build appbundle --flavor $ID --dart-define-from-file=flavors/$ID/dart_defines.json
 DONE

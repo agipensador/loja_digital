@@ -1,0 +1,167 @@
+# Esteira da PWA das lojas (Firebase Hosting).
+#
+# O site é o canal padrão de toda loja (docs/ARQUITETURA_SAAS.md §1): é o que
+# o cliente abre sem instalar nada. Antes desta esteira o site só ia para o ar
+# pela máquina do dono, com o build que estivesse na pasta — ou seja, podia ir
+# código não commitado, e nada garantia que os testes tinham passado.
+#
+# O QUE RODA QUANDO
+#   PR e push na main .... analyze + testes + compila a PWA da loja_ju.
+#                          Prova que o site compila; não manda nada para o ar.
+#   tag web-<loja>-v<x> ... o mesmo + envia aquela loja para o Hosting.
+#                          Ex.: web-loja_ju-v1.0.0 → alvo hosting:loja_ju.
+#
+# ENQUANTO NÃO EXISTIR O SECRET `FIREBASE_SERVICE_ACCOUNT`, o envio fica
+# DESLIGADO: o job roda, avisa o que falta criar e termina verde. É de
+# propósito — esteira que falha por configuração que ninguém criou ainda
+# ensina a ignorar o vermelho. Receita do secret: docs/PUBLICAR_WEB.md.
+#
+# Runner Linux (1x minuto). A loja não precisa de mac: iOS é a tarefa E3.
+
+name: Web (PWA das lojas)
+
+on:
+  pull_request:
+    paths:
+      - "app_loja_digital/**"
+      - ".github/workflows/web.yml"
+  # Sem `paths` no push: com filtro de caminho uma tag poderia ser ignorada
+  # (o GitHub compara o diff do commit, que numa tag pode estar vazio).
+  push:
+    branches: [main]
+    tags: ["web-*-v*"]
+  workflow_dispatch:
+
+concurrency:
+  group: web-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  FLUTTER_VERSION: "3.44.8"
+  PROJETO: "loja-digital-ju0714"
+  # Loja compilada quando não é tag (PR, main, execução manual): a primeira a
+  # ir para o ar. Trocar aqui não muda nada do release, que vem da tag.
+  LOJA_PADRAO: "loja_ju"
+
+jobs:
+  verificar:
+    name: Analyze e testes
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: app_loja_digital
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - name: Baixar dependências
+        run: flutter pub get
+
+      # --no-fatal-infos: o repositório tem 12 avisos `info` antigos
+      # (deprecações do Flutter novo). Erro e warning continuam derrubando.
+      - name: Analyze
+        run: flutter analyze --no-fatal-infos
+
+      - name: Testes
+        run: flutter test
+
+  compilar:
+    name: Compilar a PWA
+    needs: verificar
+    runs-on: ubuntu-latest
+    outputs:
+      loja: ${{ steps.pwa.outputs.loja }}
+    defaults:
+      run:
+        working-directory: app_loja_digital
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - name: Baixar dependências
+        run: flutter pub get
+
+      # Quem decide a loja é o Dart (tool/web/lojas_web.dart → lojaDaTag):
+      # tag de loja que não está no catálogo faz o passo falhar aqui, antes
+      # de existir qualquer coisa para mandar para o ar.
+      - name: Compilar com a marca da loja
+        id: pwa
+        env:
+          REF_TYPE: ${{ github.ref_type }}
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          if [ "$REF_TYPE" = "tag" ]; then
+            dart run tool/build_web.dart --tag "$REF_NAME"
+            loja="${REF_NAME#web-}"; loja="${loja%%-v*}"
+          else
+            dart run tool/build_web.dart "$LOJA_PADRAO"
+            loja="$LOJA_PADRAO"
+          fi
+          echo "loja=$loja" >> "$GITHUB_OUTPUT"
+
+      - name: Guardar o site compilado
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-${{ steps.pwa.outputs.loja }}
+          path: app_loja_digital/build/web_${{ steps.pwa.outputs.loja }}
+          retention-days: 7
+          if-no-files-found: error
+
+  hosting:
+    name: Enviar para o Hosting
+    # Só tag. Push na main e PR nunca chegam aqui.
+    if: github.ref_type == 'tag'
+    needs: compilar
+    runs-on: ubuntu-latest
+    environment: producao
+    env:
+      LOJA: ${{ needs.compilar.outputs.loja }}
+      # Nome da tag por env, nunca `${{ }}` dentro de `run:`: o nome de uma tag
+      # é texto livre, e interpolado direto no script ele seria executado como
+      # comando. Mesmo cuidado do job `compilar` (REF_TYPE/REF_NAME).
+      TAG: ${{ github.ref_name }}
+      # `secrets` não pode ser lido num `if:` de job, mas pode virar env.
+      TEM_CHAVE: ${{ secrets.FIREBASE_SERVICE_ACCOUNT != '' && 'sim' || 'nao' }}
+    steps:
+      - name: Sem a chave, não envia nada
+        if: env.TEM_CHAVE != 'sim'
+        run: |
+          echo "::warning title=Envio desligado::Crie o secret FIREBASE_SERVICE_ACCOUNT (receita em app_loja_digital/docs/PUBLICAR_WEB.md) para a tag $TAG ir para o ar. O site compilado está no artefato web-$LOJA."
+
+      - uses: actions/checkout@v4
+        if: env.TEM_CHAVE == 'sim'
+
+      - name: Pegar o site compilado
+        if: env.TEM_CHAVE == 'sim'
+        uses: actions/download-artifact@v4
+        with:
+          name: web-${{ needs.compilar.outputs.loja }}
+          path: app_loja_digital/build/web_${{ needs.compilar.outputs.loja }}
+
+      - name: Entrar na conta de serviço
+        if: env.TEM_CHAVE == 'sim'
+        env:
+          CHAVE: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: |
+          set -euo pipefail
+          umask 077
+          printf '%s' "$CHAVE" > "$RUNNER_TEMP/conta.json"
+          echo "GOOGLE_APPLICATION_CREDENTIALS=$RUNNER_TEMP/conta.json" >> "$GITHUB_ENV"
+
+      # Só o alvo daquela loja: `--only hosting` sem alvo mandaria para o ar
+      # TODAS as lojas, inclusive as que não foram compiladas neste job.
+      - name: Hosting da loja ${{ needs.compilar.outputs.loja }}
+        if: env.TEM_CHAVE == 'sim'
+        working-directory: app_loja_digital
+        run: npx -y firebase-tools@14 deploy --only "hosting:$LOJA" --project "$PROJETO" --non-interactive --message "$TAG"

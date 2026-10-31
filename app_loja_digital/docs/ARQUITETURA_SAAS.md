@@ -210,8 +210,17 @@ Ver também: [MERCADO_E_PRECOS.md](MERCADO_E_PRECOS.md) e
 - [x] `tool/new_flavor.sh`: config, apps Android/iOS no Firebase, site de
       hosting, loja no Firestore, **`--logo` vira o ícone** (Android, iOS,
       web) e `--color` o fundo do ícone
-- [x] `tool/build_web_flavor.sh <id> [--base-href /slug/]`: ícones/nome da
-      loja na web + build
+- [x] (2026-10-30) `dart run tool/build_web.dart <storeId>`: compila a PWA da
+      loja e põe a marca dela (título, descrição, cores e os 5 ícones a partir
+      do logotipo) **só em `build/web_<storeId>`** — a pasta `web/` do
+      repositório não é mais reescrita a cada build. Catálogo das lojas na web
+      em `tool/web/lojas_web.dart`; alvos no `firebase.json` + `.firebaserc`;
+      receita completa em [PUBLICAR_WEB.md](PUBLICAR_WEB.md).
+      O `tool/build_web_flavor.sh` ficou como atalho para esse comando.
+- [x] (2026-10-30) Esteira `.github/workflows/web.yml`: analyze + testes +
+      build da PWA em PR e na main; tag `web-<loja>-v<versão>` manda aquela
+      loja para o Hosting. **Envio desligado** até existir o secret
+      `FIREBASE_SERVICE_ACCOUNT` (passo do dono em PUBLICAR_WEB.md §4)
 - [x] `tool/delete_flavor.sh` com confirmação dupla
 - [x] Splash nativa igual para todas as lojas: branca com "development by
       inforizz" pequeno embaixo (Android, Android 12+, iOS, web)
